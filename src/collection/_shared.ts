@@ -28,27 +28,3 @@ class RangeIterable implements Iterable<number> {
 export function range(from: number, to: number): Iterable<number> {
     return new RangeIterable(from, to);
 }
-
-/**
- * The <i>isIterable</i> returns true if the value is <i>{@link Iterable}</i>.
- * @group Utilities
- */
-export function isIterable<TItem>(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    value: any,
-): value is Iterable<TItem> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    return typeof value[Symbol.iterator] === "function";
-}
-
-/**
- * The <i>isAsyncIterable</i> returns true if the value is <i>{@link AsyncIterable}</i>.
- * @group Utilities
- */
-export function isAsyncIterable<TItem>(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    value: any,
-): value is AsyncIterable<TItem> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    return typeof value[Symbol.asyncIterator] === "function";
-}

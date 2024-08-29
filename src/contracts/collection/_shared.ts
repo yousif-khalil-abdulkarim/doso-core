@@ -2,6 +2,8 @@
  * @module Collections
  */
 
+import { AsyncLazyable, Lazyable } from "@/_shared/types";
+
 /**
  * @group Errors
  */
@@ -25,30 +27,37 @@ export class UnexpectedCollectionError extends CollectionError {
 /**
  * @group Errors
  */
-export class IndexOverflowError extends CollectionError {
+export class IndexOverflowCollectionError extends CollectionError {
     constructor(message: string, cause?: unknown) {
         super(message, { cause });
-        this.name = IndexOverflowError.name;
+        this.name = IndexOverflowCollectionError.name;
     }
 }
 
 /**
  * @group Errors
  */
-export class ItemNotFoundError extends CollectionError {
+export class ItemNotFoundCollectionError extends CollectionError {
     constructor(message: string, cause?: unknown) {
         super(message, { cause });
-        this.name = ItemNotFoundError.name;
+        this.name = ItemNotFoundCollectionError.name;
     }
 }
 
 /**
  * @group Errors
  */
-export class MultipleItemsFoundError extends CollectionError {
+export class MultipleItemsFoundCollectionError extends CollectionError {
     constructor(message: string, cause?: unknown) {
         super(message, { cause });
-        this.name = MultipleItemsFoundError.name;
+        this.name = MultipleItemsFoundCollectionError.name;
+    }
+}
+
+export class TypeCollectionError extends CollectionError {
+    constructor(message: string, cause?: unknown) {
+        super(message, { cause });
+        this.name = TypeCollectionError.name;
     }
 }
 
@@ -56,8 +65,6 @@ export type UpdatedItem<TInput, TFilterOutput, TMapOutput> =
     | TInput
     | TFilterOutput
     | TMapOutput;
-
-export type RecordItem<TKey, TValue> = [key: TKey, value: TValue];
 
 export type ReverseSettings = {
     /**
@@ -119,6 +126,9 @@ export type SlidingSettings = {
 
 export type Comparator<TItem> = (itemA: TItem, itemB: TItem) => number;
 
+/**
+ * @internal
+ */
 export type Predicate_<TInput, TCollection> = (
     item: TInput,
     index: number,
@@ -169,8 +179,6 @@ export type Tap<TCollection> = (collection: TCollection) => void;
 
 export type Transform<TInput, TOutput> = (value: TInput) => TOutput;
 
-export type Lazyable<TValue> = TValue | (() => TValue);
-
 export type FindSettings<TInput, TCollection, TOutput extends TInput> = {
     predicateFn?: Predicate<TInput, TCollection, TOutput>;
     /**
@@ -219,6 +227,9 @@ export type UniqueSettings<TInput, TCollection, TOutput> = {
     throwOnIndexOverflow?: boolean;
 };
 
+/**
+ * @internal
+ */
 export type AsyncPredicate_<TInput, TCollection> = (
     item: TInput,
     index: number,
@@ -233,6 +244,9 @@ export type AsyncPredicate<
     | AsyncPredicate_<TInput, TCollection>
     | Predicate<TInput, TCollection, TOutput>;
 
+/**
+ * @internal
+ */
 export type AsyncReduce_<TInput, TCollection, TOutput> = (
     output: TOutput,
     item: TInput,
@@ -253,6 +267,9 @@ export type AsyncReduceSettings<TInput, TCollection, TOutput> = {
     throwOnIndexOverflow?: boolean;
 };
 
+/**
+ * @internal
+ */
 export type AsyncMap_<TInput, TCollection, TOutput> = (
     item: TInput,
     index: number,
@@ -263,6 +280,9 @@ export type AsyncMap<TInput, TCollection, TOutput> =
     | AsyncMap_<TInput, TCollection, TOutput>
     | Map<TInput, TCollection, TOutput>;
 
+/**
+ * @internal
+ */
 export type AsyncForEach_<TInput, TCollection> = (
     item: TInput,
     index: number,
@@ -273,6 +293,9 @@ export type AsyncForEach<TInput, TCollection> =
     | ForEach<TInput, TCollection>
     | AsyncForEach_<TInput, TCollection>;
 
+/**
+ * @internal
+ */
 export type AsyncModifier_<TInput, TOutput> = (
     collection: TInput,
 ) => Promise<TOutput>;
@@ -281,10 +304,16 @@ export type AsyncModifier<TInput, TOutput> =
     | Modifier<TInput, TOutput>
     | AsyncModifier_<TInput, TOutput>;
 
+/**
+ * @internal
+ */
 export type AsyncTap_<TCollection> = (collection: TCollection) => Promise<void>;
 
 export type AsyncTap<TCollection> = Tap<TCollection> | AsyncTap_<TCollection>;
 
+/**
+ * @internal
+ */
 export type AsyncTransform_<TInput, TOutput> = (
     value: TInput,
 ) => Promise<TOutput>;
@@ -292,10 +321,6 @@ export type AsyncTransform_<TInput, TOutput> = (
 export type AsyncTransform<TInput, TOutput> =
     | Transform<TInput, TOutput>
     | AsyncTransform_<TInput, TOutput>;
-
-export type AsyncLazyable_<TValue> = TValue | (() => Promise<TValue>);
-
-export type AsyncLazyable<TValue> = AsyncLazyable_<TValue> | Lazyable<TValue>;
 
 export type AsyncFindSettings<TInput, TCollection, TOutput extends TInput> = {
     predicateFn?: AsyncPredicate<TInput, TCollection, TOutput>;

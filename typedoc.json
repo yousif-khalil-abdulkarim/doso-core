@@ -14,9 +14,6 @@
     "projectDocuments": ["src/**/*.doc.md"],
     "categorizeByGroup": true,
     "includeVersion": true,
-    "excludeInternal": true,
-    "excludePrivate": true,
-    "excludeProtected": true,
     "cleanOutputDir": true,
     "githubPages": true,
     "plugin": [
