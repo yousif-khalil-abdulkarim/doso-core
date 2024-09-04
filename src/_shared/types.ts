@@ -20,6 +20,9 @@ export const TAG_SYMBOL = Symbol("TAG_SYMBOL");
 export type ITaggable = {
     [TAG_SYMBOL]: symbol;
 };
+export type IInitiziable = {
+    init(): Promise<void>;
+};
 
 export type AsyncIterableValue<TInput> =
     | Iterable<TInput>
@@ -30,9 +33,6 @@ export type AsyncIterableValue<TInput> =
  */
 export const ITERABLE_RECORD_SYMBOL = Symbol("ITERABLE_RECORD_SYMBOL");
 
-/**
- * @internal
- */
 export type IterableRecord<TKey extends string | number, TValue> = ITaggable &
     Record<string, TValue> &
     Iterable<RecordItem<TKey, TValue>>;
