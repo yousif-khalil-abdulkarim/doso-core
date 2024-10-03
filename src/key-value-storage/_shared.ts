@@ -6,3 +6,7 @@ export type SqlKeyValueStorageTables = {
         value: string;
     };
 };
+export type SqlKeyValueSettings = {
+    namespace: string;
+    tableName: string;
+};

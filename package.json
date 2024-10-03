@@ -38,11 +38,13 @@
     },
     "devDependencies": {
         "@changesets/cli": "^2.27.7",
+        "@testcontainers/postgresql": "^10.13.1",
         "@types/better-sqlite3": "^7.6.11",
+        "@types/pg": "^8.11.10",
+        "@types/pg-cursor": "^2.7.2",
         "@typescript-eslint/eslint-plugin": "^8.1.0",
         "@typescript-eslint/parser": "^8.1.0",
         "@vitest/eslint-plugin": "^1.0.3",
-        "better-sqlite3": "^11.2.1",
         "eslint": "^8.57.0",
         "eslint-config-prettier": "^9.1.0",
         "eslint-plugin-no-relative-import-paths": "^1.5.5",
@@ -51,7 +53,6 @@
         "eslint-plugin-tsdoc": "^0.3.0",
         "eslint-plugin-typescript-enum": "^2.1.0",
         "eslint-plugin-vitest": "^0.5.4",
-        "kysely": "^0.27.4",
         "rimraf": "^6.0.1",
         "tsc-alias": "^1.8.10",
         "typedoc": "^0.26.5",
@@ -60,5 +61,11 @@
         "typescript": "^5.5.4",
         "vite-tsconfig-paths": "^4.3.2",
         "vitest": "^2.0.5"
+    },
+    "dependencies": {
+        "better-sqlite3": "^11.3.0",
+        "kysely": "^0.27.4",
+        "pg": "^8.13.0",
+        "pg-cursor": "^2.12.0"
     }
 }

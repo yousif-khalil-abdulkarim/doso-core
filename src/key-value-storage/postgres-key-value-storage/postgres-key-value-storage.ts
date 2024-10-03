@@ -6,18 +6,19 @@ import {
     type IKeyValueStorage,
 } from "@/contracts/key-value-storage/_module";
 import { IInitiziable, type RecordItem } from "@/_shared/types";
-import { type RawBuilder, sql, Kysely, SqliteDialect } from "kysely";
+import { type RawBuilder, sql, Kysely, PostgresDialect } from "kysely";
 import {
     SQL_KV_STORAGE_TABLE_NAME,
     SqlKeyValueSettings,
     type SqlKeyValueStorageTables,
 } from "@/key-value-storage/_shared";
-import { type Database } from "better-sqlite3";
+import { Pool } from "pg";
+import Cursor from "pg-cursor";
 
 /**
  * @private
  */
-export async function initSqliteKeyValueStorage(
+export async function initPostgresKeyValueStorage(
     db: Kysely<SqlKeyValueStorageTables>,
 ): Promise<void> {
     await db.schema
@@ -33,7 +34,7 @@ export async function initSqliteKeyValueStorage(
 /**
  * @private
  */
-export class SqliteKeyValueStorageInternal<TValue = unknown>
+export class PostgresKeyValueStorageInternal<TValue = unknown>
     implements IKeyValueStorage<TValue>
 {
     constructor(
@@ -83,10 +84,10 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
         try {
             const result = await this.db
                 .selectFrom(SQL_KV_STORAGE_TABLE_NAME)
-                .select((eb) => eb.fn.count<number>("namespace").as("size"))
+                .select((eb) => eb.fn.count<bigint>("namespace").as("size"))
                 .where("namespace", "=", this.namespace)
                 .executeTakeFirst();
-            return result?.size ?? 0;
+            return Number(result?.size ?? 0);
         } catch (error: unknown) {
             if (error instanceof KeyValueStorageError) {
                 throw error;
@@ -195,7 +196,7 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
     getStartsWithMany(
         keyPrefix: string,
     ): AsyncIterable<RecordItem<string, TValue>> {
-        return new SqliteKeyValueStorageInternal.AsyncLikeIterable(
+        return new PostgresKeyValueStorageInternal.AsyncLikeIterable(
             this.db,
             `${keyPrefix}%`,
             this.namespace,
@@ -205,7 +206,7 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
     getEndsWithMany(
         keySuffix: string,
     ): AsyncIterable<RecordItem<string, TValue>> {
-        return new SqliteKeyValueStorageInternal.AsyncLikeIterable(
+        return new PostgresKeyValueStorageInternal.AsyncLikeIterable(
             this.db,
             `%${keySuffix}`,
             this.namespace,
@@ -213,7 +214,7 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
     }
 
     getIncludesMany(key: string): AsyncIterable<RecordItem<string, TValue>> {
-        return new SqliteKeyValueStorageInternal.AsyncLikeIterable(
+        return new PostgresKeyValueStorageInternal.AsyncLikeIterable(
             this.db,
             `%${key}%`,
             this.namespace,
@@ -223,15 +224,15 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
     private static sqlClamp(
         value: RawBuilder<unknown>,
         { max, min }: ClampSettings = {},
-    ): RawBuilder<unknown> {
+    ): RawBuilder<string> {
         if (max && min) {
-            return sql`min(max(${value}, ${min}), ${max})`;
+            return sql`least(greatest(${value}, ${min}), ${max})`;
         }
         if (min) {
-            return sql`max(${value}, ${min})`;
+            return sql`greatest(${value}, ${min})`;
         }
         if (max) {
-            return sql`min(${value}, ${max})`;
+            return sql`least(${value}, ${max})`;
         }
         return sql`${value}`;
     }
@@ -240,7 +241,7 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
         jsonValue: RawBuilder<unknown>,
         settings?: ClampSettings,
     ): RawBuilder<string> {
-        jsonValue = sql`json(${jsonValue})`;
+        jsonValue = sql`to_json(${jsonValue})`;
         return sql<string>`
         case
             when
@@ -248,7 +249,7 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
                 or json_type(${jsonValue}) == 'integer'
             then
                 json_quote(
-                    ${SqliteKeyValueStorageInternal.sqlClamp(sql`${jsonValue} ->> '$'`, settings)}
+                    ${PostgresKeyValueStorageInternal.sqlClamp(sql`${jsonValue} ->> '$'`, settings)}
                 )
             else ${jsonValue}
         end
@@ -266,7 +267,7 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
             const insertValues = items.map(([key, value]) => {
                 return {
                     key,
-                    value: SqliteKeyValueStorageInternal.sqlClampJsonValue(
+                    value: PostgresKeyValueStorageInternal.sqlClamp(
                         sql`${JSON.stringify(value)}`,
                         settings,
                     ),
@@ -274,12 +275,13 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
                 };
             });
 
-            const result = await this.db
+            const query = this.db
                 .insertInto(SQL_KV_STORAGE_TABLE_NAME)
                 .values(insertValues)
                 .onConflict((b) => b.columns(["key", "namespace"]).doNothing())
-                .returning("key")
-                .execute();
+                .returning("key");
+            console.log(query.compile().sql);
+            const result = await query.execute();
 
             return Object.fromEntries([
                 ...items.map<RecordItem<string, boolean>>(([key]) => [
@@ -328,7 +330,7 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
                         .case()
                         .when("key", "=", firstKey)
                         .then(
-                            SqliteKeyValueStorageInternal.sqlClampJsonValue(
+                            PostgresKeyValueStorageInternal.sqlClampJsonValue(
                                 sql`${JSON.stringify(firstValue)}`,
                                 settings,
                             ),
@@ -338,7 +340,7 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
                             return qb
                                 .when("key", "=", key)
                                 .then(
-                                    SqliteKeyValueStorageInternal.sqlClampJsonValue(
+                                    PostgresKeyValueStorageInternal.sqlClampJsonValue(
                                         sql`${JSON.stringify(value)}`,
                                         settings,
                                     ),
@@ -386,7 +388,7 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
             const insertValues = items.map(([key, { insertValue }]) => {
                 return {
                     key,
-                    value: SqliteKeyValueStorageInternal.sqlClampJsonValue(
+                    value: PostgresKeyValueStorageInternal.sqlClampJsonValue(
                         sql`${JSON.stringify(insertValue)}`,
                         settings,
                     ),
@@ -414,7 +416,7 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
                             .case()
                             .when("key", "=", firstKey)
                             .then(
-                                SqliteKeyValueStorageInternal.sqlClampJsonValue(
+                                PostgresKeyValueStorageInternal.sqlClampJsonValue(
                                     sql`${JSON.stringify(firstValue)}`,
                                     settings,
                                 ),
@@ -424,7 +426,7 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
                                 return qb
                                     .when("key", "=", key)
                                     .then(
-                                        SqliteKeyValueStorageInternal.sqlClampJsonValue(
+                                        PostgresKeyValueStorageInternal.sqlClampJsonValue(
                                             sql`${JSON.stringify(value)}`,
                                             settings,
                                         ),
@@ -489,7 +491,7 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
     ): Promise<TReturn> {
         return this.db.transaction().execute((trx) => {
             return transactionFn(
-                new SqliteKeyValueStorageInternal(trx, this.namespace),
+                new PostgresKeyValueStorageInternal(trx, this.namespace),
             );
         });
     }
@@ -498,15 +500,16 @@ export class SqliteKeyValueStorageInternal<TValue = unknown>
 /**
  * @group Adapters
  */
-export class SqliteKeyValueStorage<TValue = unknown>
-    extends SqliteKeyValueStorageInternal<TValue>
+export class PostgresKeyValueStorage<TValue = unknown>
+    extends PostgresKeyValueStorageInternal<TValue>
     implements IInitiziable
 {
-    constructor(database: Database, settings: SqlKeyValueSettings) {
+    constructor(database: Pool, settings: SqlKeyValueSettings) {
         super(
             new Kysely<SqlKeyValueStorageTables>({
-                dialect: new SqliteDialect({
-                    database,
+                dialect: new PostgresDialect({
+                    pool: database,
+                    cursor: Cursor,
                 }),
                 plugins: [],
             }),
@@ -515,6 +518,6 @@ export class SqliteKeyValueStorage<TValue = unknown>
     }
 
     async init(): Promise<void> {
-        await initSqliteKeyValueStorage(this.db);
+        await initPostgresKeyValueStorage(this.db);
     }
 }

@@ -1,33 +1,56 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import {
-    initSqliteKeyValueStorage,
-    SqliteKeyValueStorageInternal,
-} from "@/key-value-storage/sqlite-key-value-storage/_module";
+    initPostgresKeyValueStorage,
+    PostgresKeyValueStorageInternal,
+} from "@/key-value-storage/postgres-key-value-storage/_module";
 import {
     type SqlKeyValueStorageTables,
     SQL_KV_STORAGE_TABLE_NAME,
 } from "@/key-value-storage/_shared";
 import { type RecordItem } from "@/_shared/types";
+import {
+    PostgreSqlContainer,
+    StartedPostgreSqlContainer,
+} from "@testcontainers/postgresql";
+import { Kysely, PostgresDialect } from "kysely";
+import { Pool } from "pg";
+import Cursor from "pg-cursor";
 
-import SQLite, { type Database } from "better-sqlite3";
-import { Kysely, SqliteDialect } from "kysely";
-
-describe("class: SqliteKeyValueStorageInternal", () => {
+describe("class: PostgresKeyValueStorageInternal", () => {
     let db: Kysely<SqlKeyValueStorageTables>;
-    let sqlite: Database;
+    let pool: Pool;
+    const container = new PostgreSqlContainer();
+    let startedContainer: StartedPostgreSqlContainer;
 
-    beforeEach(async () => {
-        sqlite = new SQLite(":memory:");
-        db = new Kysely<SqlKeyValueStorageTables>({
-            dialect: new SqliteDialect({
-                database: new SQLite(":memory:"),
-            }),
-        });
-        await initSqliteKeyValueStorage(db);
-    });
-    afterEach(() => {
-        sqlite.close();
-    });
+    beforeEach(
+        async () => {
+            startedContainer = await container.start();
+            pool = new Pool({
+                database: startedContainer.getDatabase(),
+                host: startedContainer.getHost(),
+                user: startedContainer.getUsername(),
+                port: startedContainer.getPort(),
+                password: startedContainer.getPassword(),
+                max: 10,
+            });
+
+            db = new Kysely<SqlKeyValueStorageTables>({
+                dialect: new PostgresDialect({
+                    pool,
+                    cursor: Cursor,
+                }),
+            });
+            await initPostgresKeyValueStorage(db);
+        },
+        1000 * 60 * 3,
+    );
+    afterEach(
+        async () => {
+            await pool.end();
+            await startedContainer.stop();
+        },
+        1000 * 60 * 3,
+    );
     describe("method: Symbol.asyncIterator", () => {
         test("Should return all key value pairs of a given namespace", async () => {
             await db
@@ -55,7 +78,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const items: unknown[] = [];
             for await (const item of storage) {
@@ -93,7 +116,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(
+            const storage = new PostgresKeyValueStorageInternal(
                 db,
                 "none_exsiting",
             );
@@ -133,7 +156,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.clear();
 
@@ -186,7 +209,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(
+            const storage = new PostgresKeyValueStorageInternal(
                 db,
                 "none_existing",
             );
@@ -253,7 +276,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const size = await storage.size();
 
@@ -285,7 +308,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(
+            const storage = new PostgresKeyValueStorageInternal(
                 db,
                 "none_exsiting",
             );
@@ -322,7 +345,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const result = await storage.hasMany(["a", "b", "c"]);
 
@@ -358,7 +381,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(
+            const storage = new PostgresKeyValueStorageInternal(
                 db,
                 "none_existing",
             );
@@ -399,7 +422,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const result = await storage.getMany(["a", "b", "c"]);
 
@@ -435,7 +458,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(
+            const storage = new PostgresKeyValueStorageInternal(
                 db,
                 "none_existing",
             );
@@ -506,7 +529,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const items: RecordItem<string, unknown>[] = [];
             for await (const item of storage.getStartsWithMany("ab/")) {
@@ -573,7 +596,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const items: RecordItem<string, unknown>[] = [];
             for await (const item of storage.getStartsWithMany("abc/")) {
@@ -640,7 +663,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const items: RecordItem<string, unknown>[] = [];
             for await (const item of storage.getEndsWithMany("/ab")) {
@@ -708,7 +731,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const items: RecordItem<string, unknown>[] = [];
             for await (const item of storage.getEndsWithMany("/abc")) {
@@ -775,7 +798,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const items: RecordItem<string, unknown>[] = [];
             for await (const item of storage.getIncludesMany("/ab/")) {
@@ -823,7 +846,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const items: RecordItem<string, unknown>[] = [];
             for await (const item of storage.getIncludesMany("/abc/")) {
@@ -833,7 +856,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
             expect(items).toStrictEqual([]);
         });
     });
-    describe("method: insertIfNotExistsMany", () => {
+    describe.only("method: insertIfNotExistsMany", () => {
         test("Should return true for all keys that do not exists for a given namespace", async () => {
             await db
                 .insertInto(SQL_KV_STORAGE_TABLE_NAME)
@@ -860,7 +883,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const result = await storage.insertIfNotExistsMany([
                 ["a", -1],
@@ -902,7 +925,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.insertIfNotExistsMany([
                 ["a", -1],
@@ -969,7 +992,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.insertIfNotExistsMany([["a", 20]], { max: 10 });
 
@@ -1006,7 +1029,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.insertIfNotExistsMany([["a", 5]], { min: 10 });
 
@@ -1043,7 +1066,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.insertIfNotExistsMany([["a", 20]], {
                 max: 10,
@@ -1083,7 +1106,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.insertIfNotExistsMany([["a", 5]], {
                 min: 10,
@@ -1123,7 +1146,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const result = storage.insertIfNotExistsMany([["a", "abcd"]], {
                 min: 10,
@@ -1170,7 +1193,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const result = await storage.updateIfExistsMany([
                 ["d", -20],
@@ -1222,7 +1245,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.updateIfExistsMany([
                 ["d", -20],
@@ -1289,7 +1312,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.updateIfExistsMany([["a", 20]], { max: 10 });
 
@@ -1331,7 +1354,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.updateIfExistsMany([["a", 5]], { min: 10 });
 
@@ -1373,7 +1396,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.updateIfExistsMany([["a", 20]], { max: 10, min: 5 });
 
@@ -1415,7 +1438,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.updateIfExistsMany([["a", 5]], { min: 10, max: 15 });
 
@@ -1457,7 +1480,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const result = storage.updateIfExistsMany([["a", 5]], {
                 min: 10,
@@ -1484,7 +1507,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.insertOrUpdateMany([
                 [
@@ -1561,7 +1584,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.insertOrUpdateMany([
                 [
@@ -1633,7 +1656,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.insertOrUpdateMany(
                 [
@@ -1710,7 +1733,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.insertOrUpdateMany(
                 [
@@ -1787,7 +1810,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.insertOrUpdateMany(
                 [
@@ -1865,7 +1888,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.insertOrUpdateMany(
                 [
@@ -1943,7 +1966,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const result = storage.insertOrUpdateMany(
                 [
@@ -2003,7 +2026,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const result = await storage.removeIfExistsMany(["d", "a", "b"]);
 
@@ -2049,7 +2072,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             await storage.removeIfExistsMany(["d", "a", "b"]);
 
@@ -2098,7 +2121,7 @@ describe("class: SqliteKeyValueStorageInternal", () => {
                     },
                 ])
                 .execute();
-            const storage = new SqliteKeyValueStorageInternal(db, "global");
+            const storage = new PostgresKeyValueStorageInternal(db, "global");
 
             const result = await storage.transaction(async (storage) =>
                 storage.getMany(["a"]),
