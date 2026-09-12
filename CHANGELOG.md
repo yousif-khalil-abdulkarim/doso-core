@@ -1,5 +1,11 @@
 # @daiso-tech/core
 
+## 0.62.2
+
+### Patch Changes
+
+- eb41d9c: Exported the `SemaphoreFactoryResolver` class as a runtime value from `eridu-tech/semaphore`. `SemaphoreFactoryResolver` was previously exported as type-only, which prevented it from being instantiated at runtime.
+
 ## 0.62.1
 
 ### Patch Changes
