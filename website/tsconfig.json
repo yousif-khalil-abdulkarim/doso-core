@@ -5,6 +5,8 @@
     "compilerOptions": {
         "verbatimModuleSyntax": true,
         "module": "NodeNext",
-        "moduleResolution": "nodenext"
+        "moduleResolution": "nodenext",
+        "noImplicitAny": true,
+        "resolveJsonModule": true,
     }
 }
