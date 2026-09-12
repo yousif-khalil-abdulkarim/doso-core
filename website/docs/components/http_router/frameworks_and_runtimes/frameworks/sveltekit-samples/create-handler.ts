@@ -11,7 +11,7 @@ const router = new HttpRouter({ router: defaultHttpRouterAdapter });
 router.endpoint({
     url: "/api/hello",
     method: "GET",
-    handler: async () => HttpRes.text("Hello from SvelteKit!"),
+    handler: ({ text }) => text("Hello from SvelteKit!"),
 });
 
 export const GET: RequestHandler = async ({ request }) => router.fetch(request);

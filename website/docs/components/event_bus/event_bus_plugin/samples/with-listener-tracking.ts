@@ -1,11 +1,13 @@
 import { withPlugin } from "eridu-tech/middleware";
 import { MemoryEventBusAdapter } from "eridu-tech/event-bus/memory-event-bus-adapter";
 import { withListenerTracking } from "eridu-tech/event-bus/plugins";
+import type { PluginFn } from "eridu-tech/middleware/contracts";
+import type { IEventBusAdapter } from "eridu-tech/event-bus/contracts";
 
 const adapter = new MemoryEventBusAdapter();
 
 // A plugin that wraps listeners, e.g. to add logging or validation
-const loggingPlugin = (instance, enhance) => {
+const loggingPlugin: PluginFn<IEventBusAdapter> = (instance, enhance) => {
     enhance(
         instance,
         "addListener",

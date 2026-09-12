@@ -1,10 +1,11 @@
+import type { BaseEvent } from "eridu-tech/event-bus/contracts";
 import { MemoryEventBusAdapter } from "eridu-tech/event-bus/memory-event-bus-adapter";
 
 const adapter = new MemoryEventBusAdapter();
 
 // Event data to dispatch and listener to register
 const data = { userId: "123" };
-const listener = (event) => {
+const listener = (event: BaseEvent): void => {
     console.log("Received event:", event);
 };
 

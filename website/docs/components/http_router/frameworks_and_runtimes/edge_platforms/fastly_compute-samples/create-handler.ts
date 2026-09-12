@@ -11,7 +11,7 @@ const router = new HttpRouter({ router: defaultHttpRouterAdapter });
 router.endpoint({
     url: "/hello",
     method: "GET",
-    handler: async () => HttpRes.text("Hello Fastly Compute!"),
+    handler: ({ text }) => text("Hello Fastly Compute!"),
 });
 
 fire(router);

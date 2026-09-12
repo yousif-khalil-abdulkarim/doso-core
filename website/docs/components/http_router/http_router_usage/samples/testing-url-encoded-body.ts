@@ -12,8 +12,7 @@ describe("URL-encoded body", () => {
         router.endpoint({
             url: "/submit",
             method: ["POST"],
-            handler: async ({ req, text }) =>
-                text(String(await req.formData())),
+            handler: async ({ req, json }) => json(await req.formData()),
         });
 
         const httpReq = HttpReq.test({

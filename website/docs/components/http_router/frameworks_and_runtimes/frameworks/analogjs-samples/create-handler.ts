@@ -11,7 +11,7 @@ const router = new HttpRouter({ router: defaultHttpRouterAdapter });
 router.endpoint({
     url: "/api/hello",
     method: "GET",
-    handler: async () => HttpRes.text("Hello from Analog!"),
+    handler: ({ text }) => text("Hello from Analog!"),
 });
 
 export default defineEventHandler(async (event) => {

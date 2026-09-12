@@ -1,6 +1,11 @@
 import { TimeSpan } from "eridu-tech/time-span";
 
-async ({ res }) => {
+import type {
+    HttpHandlerArgs,
+    IHttpRes,
+} from "eridu-tech/http-router/contracts";
+
+async ({ res }: HttpHandlerArgs): Promise<IHttpRes> => {
     return res
         .putCookie("session", "abc123", {
             httpOnly: true,
