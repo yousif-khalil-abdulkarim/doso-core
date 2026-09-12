@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 import { MemoryEventBusAdapter } from "eridu-tech/event-bus/memory-event-bus-adapter";
 import { EventBus } from "eridu-tech/event-bus";

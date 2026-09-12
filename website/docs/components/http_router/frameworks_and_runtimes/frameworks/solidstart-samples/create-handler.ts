@@ -11,7 +11,7 @@ const router = new HttpRouter({ router: defaultHttpRouterAdapter });
 router.endpoint({
     url: "/api/hello",
     method: "GET",
-    handler: async () => HttpRes.text("Hello from SolidStart!"),
+    handler: ({ text }) => text("Hello from SolidStart!"),
 });
 
 export const GET = ({ request }: APIEvent) => router.fetch(request);

@@ -11,7 +11,7 @@ const router = new HttpRouter({ router: defaultHttpRouterAdapter });
 router.endpoint({
     url: "/hello",
     method: "GET",
-    handler: async () => HttpRes.text("Hello Alibaba Cloud!"),
+    handler: ({ text }) => text("Hello Alibaba Cloud!"),
 });
 
 export const handler = handle(router);

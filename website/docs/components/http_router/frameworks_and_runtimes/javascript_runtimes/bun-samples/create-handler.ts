@@ -10,7 +10,7 @@ const router = new HttpRouter({ router: defaultHttpRouterAdapter });
 router.endpoint({
     url: "/hello",
     method: "GET",
-    handler: async () => HttpRes.text("Hello Bun!"),
+    handler: ({ text }) => text("Hello Bun!"),
 });
 
 export default {

@@ -7,7 +7,6 @@
  * default implementation uses @vercel/og; the site config can supply its own
  * branded generator via the `ogGenerator` plugin option.
  */
-// @ts-ignore - fs-extra ships its own types; keep import-style parity with docusaurus
 import * as fs from "fs-extra";
 import * as path from "path";
 import type { LoadContext, Plugin } from "@docusaurus/types";

@@ -11,7 +11,7 @@ const router = new HttpRouter({ router: defaultHttpRouterAdapter });
 router.endpoint({
     url: "/hello",
     method: "GET",
-    handler: async () => HttpRes.text("Hello Node.js!"),
+    handler: ({ text }) => text("Hello Node.js!"),
 });
 
 const server = serve({

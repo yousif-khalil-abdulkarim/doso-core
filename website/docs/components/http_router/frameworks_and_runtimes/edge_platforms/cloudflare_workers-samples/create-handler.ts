@@ -10,7 +10,7 @@ const router = new HttpRouter({ router: defaultHttpRouterAdapter });
 router.endpoint({
     url: "/hello",
     method: "GET",
-    handler: async () => HttpRes.text("Hello Cloudflare Workers!"),
+    handler: ({ text }) => text("Hello Cloudflare Workers!"),
 });
 
 export default { fetch: (request: Request) => router.fetch(request) };

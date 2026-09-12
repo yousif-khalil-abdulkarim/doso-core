@@ -44,6 +44,18 @@ export default tseslint.config(
             // Method references are frequently passed as callbacks, and `this`
             // is never relied on in this codebase.
             "@typescript-eslint/unbound-method": "off",
+            // Returning `any` is common when bridging untyped APIs.
+            "@typescript-eslint/no-unsafe-return": "off",
+            // Assigning `any` is common when bridging untyped APIs.
+            "@typescript-eslint/no-unsafe-assignment": "off",
+            // `any` is used deliberately when bridging untyped APIs.
+            "@typescript-eslint/no-explicit-any": "off",
+            // Passing `any` is common when bridging untyped APIs.
+            "@typescript-eslint/no-unsafe-argument": "off",
+            // Calling `any` is common when bridging untyped APIs.
+            "@typescript-eslint/no-unsafe-call": "off",
+            // Short-circuit expressions are used deliberately for side effects.
+            "@typescript-eslint/no-unused-expressions": "off",
         },
     },
 

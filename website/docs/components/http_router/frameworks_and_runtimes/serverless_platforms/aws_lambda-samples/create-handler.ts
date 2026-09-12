@@ -11,7 +11,7 @@ const router = new HttpRouter({ router: defaultHttpRouterAdapter });
 router.endpoint({
     url: "/hello",
     method: "GET",
-    handler: async () => HttpRes.text("Hello AWS Lambda!"),
+    handler: ({ text }) => text("Hello AWS Lambda!"),
 });
 
 export const handler = handle(router);

@@ -5,7 +5,6 @@
 import { themes as prismThemes } from "prism-react-renderer";
 import type { Config, PluginModule } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
-// @ts-ignore
 import docusaurusPluginLlmsTxt, {
     type PluginOptions,
 } from "@signalwire/docusaurus-plugin-llms-txt";

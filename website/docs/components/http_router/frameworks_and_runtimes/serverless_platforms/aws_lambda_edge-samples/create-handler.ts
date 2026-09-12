@@ -11,7 +11,7 @@ const router = new HttpRouter({ router: defaultHttpRouterAdapter });
 router.endpoint({
     url: "/hello",
     method: "GET",
-    handler: async () => HttpRes.text("Hello Lambda@Edge!"),
+    handler: ({ text }) => text("Hello Lambda@Edge!"),
 });
 
 export const handler = handle(router);

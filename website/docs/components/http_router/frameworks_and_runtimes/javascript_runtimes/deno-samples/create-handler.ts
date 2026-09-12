@@ -10,7 +10,7 @@ const router = new HttpRouter({ router: defaultHttpRouterAdapter });
 router.endpoint({
     url: "/hello",
     method: "GET",
-    handler: async () => HttpRes.text("Hello Deno!"),
+    handler: ({ text }) => text("Hello Deno!"),
 });
 
 Deno.serve((request) => router.fetch(request));

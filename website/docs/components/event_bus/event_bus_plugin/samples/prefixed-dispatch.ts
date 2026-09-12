@@ -1,6 +1,7 @@
 import { withPlugin } from "eridu-tech/middleware";
 import { MemoryEventBusAdapter } from "eridu-tech/event-bus/memory-event-bus-adapter";
 import { withEventBusPrefix } from "eridu-tech/event-bus/plugins";
+import type { BaseEvent } from "eridu-tech/event-bus/contracts";
 
 const adapter = new MemoryEventBusAdapter();
 
@@ -9,7 +10,7 @@ const prefixedAdapter = withPlugin(adapter, withEventBusPrefix("tenant-42:"));
 
 // Event data to dispatch and listener to register
 const data = { userId: "123" };
-const listener = (event) => {
+const listener = (event: BaseEvent): void => {
     console.log("Received event:", event);
 };
 

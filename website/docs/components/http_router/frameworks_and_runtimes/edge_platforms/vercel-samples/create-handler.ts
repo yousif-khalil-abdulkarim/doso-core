@@ -10,7 +10,7 @@ const router = new HttpRouter({ router: defaultHttpRouterAdapter });
 router.endpoint({
     url: "/api/hello",
     method: "GET",
-    handler: async () => HttpRes.text("Hello Vercel!"),
+    handler: ({ text }) => text("Hello Vercel!"),
 });
 
 export default router;
