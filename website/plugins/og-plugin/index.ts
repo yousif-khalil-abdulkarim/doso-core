@@ -7,12 +7,11 @@
  * default implementation uses @vercel/og; the site config can supply its own
  * branded generator via the `ogGenerator` plugin option.
  */
-// @ts-ignore - fs-extra ships its own types; keep import-style parity with docusaurus
 import * as fs from "fs-extra";
 import * as path from "path";
 import type { LoadContext, Plugin } from "@docusaurus/types";
 
-import {
+import type {
     OgGenerator,
     OgGeneratorParams,
     PluginOptions,
@@ -168,7 +167,8 @@ export default function previewImageGeneratorPlugin(
     options: PluginOptions,
 ): Plugin<void> {
     const { outDir, siteConfig } = context;
-    const { ogGenerator = defaultOgGenerator, assetsDir = "og-assets" } = options;
+    const { ogGenerator = defaultOgGenerator, assetsDir = "og-assets" } =
+        options;
 
     return {
         name: "preview-image-generator",
@@ -213,7 +213,9 @@ export default function previewImageGeneratorPlugin(
                 }
             }
 
-            console.log(`✅ Generated ${props.routesPaths.length} preview images`);
+            console.log(
+                `✅ Generated ${props.routesPaths.length} preview images`,
+            );
         },
     };
 }

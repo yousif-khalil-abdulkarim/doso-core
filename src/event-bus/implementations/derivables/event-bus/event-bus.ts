@@ -22,6 +22,22 @@ import type { EventMapSchema } from "@/event-bus/implementations/derivables/even
 import type { OneOrArray, InvocableFn } from "@/utilities/_module.js";
 
 /**
+ * A helper function to create a typed {@link EventMapSchema}.
+ * This provides type-safety when defining the schema map for your events.
+ *
+ * @param eventMapSchema - The event map schema to define.
+ * @returns The same event map schema with proper type inference.
+ *
+ * IMPORT_PATH: `"eridu-tech/event-bus"`
+ * @group Derivables
+ */
+export function defineEventMapSchema<TEventMap extends BaseEventMap>(
+    eventMapSchema: EventMapSchema<TEventMap>,
+): EventMapSchema<TEventMap> {
+    return eventMapSchema;
+}
+
+/**
  * Base configuration shared by all `EventBus` variants.
  * Supports optional schema-based validation for event maps.
  *
@@ -143,7 +159,9 @@ export class EventBus<
         listener: EventListener<InferEvent<TEventMap, TEventName>>,
     ): Promise<void> {
         if (typeof eventName !== "string") {
-            throw new TypeError("!!__MESSAGE__!!");
+            throw new TypeError(
+                "Event name must be a string to add a listener.",
+            );
         }
         const resolvedListener = this.store.getOrAdd(
             eventName,
@@ -175,7 +193,9 @@ export class EventBus<
         listener: EventListener<InferEvent<TEventMap, TEventName>>,
     ): Promise<void> {
         if (typeof eventName !== "string") {
-            throw new TypeError("!!__MESSAGE__!!");
+            throw new TypeError(
+                "Event name must be a string to remove a listener.",
+            );
         }
         const resolvedListener = this.store.getAndRemove(eventName, listener);
         if (resolvedListener === null) {
@@ -206,7 +226,9 @@ export class EventBus<
         listener: EventListener<InferEvent<TEventMap, TEventName>>,
     ): Promise<void> {
         if (typeof eventName !== "string") {
-            throw new TypeError("!!__MESSAGE__!!");
+            throw new TypeError(
+                "Event name must be a string to listen for a single event.",
+            );
         }
         const wrappedListener = async (
             event_: InferEvent<TEventMap, TEventName>,
@@ -290,7 +312,9 @@ export class EventBus<
         event: TEventMap[TEventName],
     ): Promise<void> {
         if (typeof eventName !== "string") {
-            throw new TypeError("!!__MESSAGE__!!");
+            throw new TypeError(
+                "Event name must be a string to dispatch an event.",
+            );
         }
         await this.adapter.dispatch(eventName, event);
     }

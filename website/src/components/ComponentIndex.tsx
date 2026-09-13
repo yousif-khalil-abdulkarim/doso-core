@@ -1,4 +1,4 @@
-import type { ComponentItemProps } from "../data/types";
+import type { ComponentItemProps } from "../data/types.js";
 import Link from "@docusaurus/Link";
 
 export type ComponentSection = {
@@ -7,7 +7,11 @@ export type ComponentSection = {
     items: readonly ComponentItemProps[];
 };
 
-export function ComponentIndex({ sections }: { sections: readonly ComponentSection[] }) {
+export function ComponentIndex({
+    sections,
+}: {
+    sections: readonly ComponentSection[];
+}) {
     return (
         <>
             {sections.map((section) => {

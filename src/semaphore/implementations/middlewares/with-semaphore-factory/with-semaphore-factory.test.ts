@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { use } from "@/middleware/implementations/_module.js";
@@ -37,8 +36,8 @@ describe("function: withSemaphoreFactory", () => {
             fn,
             withSemaphore({
                 ...settings,
-                key: (value: string) => value,
-                slotId: (value: string) => value,
+                key: ([value]) => value,
+                slotId: ([value]) => value,
             }),
         )(argValue);
 
@@ -55,7 +54,7 @@ describe("function: withSemaphoreFactory", () => {
         await use(
             fn,
             withSemaphore({
-                key: (value: string) => value,
+                key: ([value]) => value,
                 limit,
             }),
         )(argValue);
@@ -71,8 +70,7 @@ describe("function: withSemaphoreFactory", () => {
         await use(
             fn,
             withSemaphore({
-                key: (userId: string, postId: string) =>
-                    `user:${userId}:post:${postId}`,
+                key: ([userId, postId]) => `user:${userId}:post:${postId}`,
                 limit: 4,
             }),
         )("u1", "p2");
@@ -89,7 +87,7 @@ describe("function: withSemaphoreFactory", () => {
         const wrapped = use(
             fn,
             withSemaphore({
-                key: (a: string, b: string) => `${a}:${b}`,
+                key: ([a, b]) => `${a}:${b}`,
                 limit: 4,
             }),
         );

@@ -5,8 +5,7 @@ import type {
     CodeFile,
     CodeExample,
     ComparisonItem,
-} from "./types";
-import { SiTypescript, SiVitest } from "@icons-pack/react-simple-icons";
+} from "./types.js";
 import {
     Box,
     ShieldCheck,
@@ -40,7 +39,6 @@ import {
     Leaf,
     Image,
     Activity,
-    Package,
 } from "lucide-react";
 
 export const INSTALL_CMD = "npm install eridu-tech";
@@ -64,7 +62,8 @@ const EXISTING_FOUNDATION_RECORD = {
         description: (
             <>
                 Composable middleware pipeline with before/after hooks and error
-                handling, the foundation for every component's plugin system.
+                handling, the foundation for every component&apos;s plugin
+                system.
             </>
         ),
     } satisfies ComponentItemProps,
@@ -398,8 +397,8 @@ const UPCOMING_FOUNDATION_RUNTIME_RECORD = {
         description: (
             <>
                 Run async tasks in structured scopes where child tasks are tied
-                to their parent's lifetime, with automatic cancellation, error
-                propagation, and resource cleanup.
+                to their parent&apos;s lifetime, with automatic cancellation,
+                error propagation, and resource cleanup.
             </>
         ),
     } satisfies ComponentItemProps,
@@ -854,7 +853,7 @@ export const MIDDLEWARE_EXISTING_ITEMS: ComponentItemProps[] = [
         name: "withCacheFactory",
         title: <>withCacheFactory</>,
         link: "/docs/components/cache/cache_middlewares",
-        description: <>Caches the wrapped function's return value.</>,
+        description: <>Caches the wrapped function&apos;s return value.</>,
     },
     {
         name: "withInvalidationFactory",
@@ -929,7 +928,9 @@ export const MIDDLEWARE_EXISTING_ITEMS: ComponentItemProps[] = [
         title: <>retry</>,
         link: "/docs/components/resilience",
         description: (
-            <>Retries the wrapped function up to a maximum number of attempts.</>
+            <>
+                Retries the wrapped function up to a maximum number of attempts.
+            </>
         ),
     },
     {
@@ -1047,9 +1048,9 @@ export const FEATURE_ITEMS = {
             <>
                 Agnostic AOP-style middlewares and adapter plugins let you
                 extend your own code or existing adapters with additional
-                behavior that isn't included by default, keeping every component
-                composable and extendable. Predefined plugins and middlewares
-                are included out of the box.
+                behavior that isn&apos;t included by default, keeping every
+                component composable and extendable. Predefined plugins and
+                middlewares are included out of the box.
             </>
         ),
     } satisfies FeatureItemProps,
@@ -1265,8 +1266,8 @@ export const NOT_IDEAL_FOR = {
         description: (
             <>
                 Features unique to a particular database, cache, or cloud
-                service may require using that provider's native SDK directly
-                instead of a generic abstraction.
+                service may require using that provider&apos;s native SDK
+                directly instead of a generic abstraction.
             </>
         ),
     } satisfies WhoIsThisForItem,
@@ -1276,8 +1277,8 @@ export const NOT_IDEAL_FOR = {
         description: (
             <>
                 While usable from JavaScript, the library is designed around
-                TypeScript's type system, generics, and inference for the best
-                developer experience.
+                TypeScript&apos;s type system, generics, and inference for the
+                best developer experience.
             </>
         ),
     } satisfies WhoIsThisForItem,

@@ -1,0 +1,20 @@
+import { withPlugin } from "eridu-tech/middleware";
+import { MemoryEventBusAdapter } from "eridu-tech/event-bus/memory-event-bus-adapter";
+import { withEventBusPrefix } from "eridu-tech/event-bus/plugins";
+import type { BaseEvent } from "eridu-tech/event-bus/contracts";
+
+const adapter = new MemoryEventBusAdapter();
+
+// Apply the prefix plugin to the adapter
+const prefixedAdapter = withPlugin(adapter, withEventBusPrefix("tenant-42:"));
+
+// Event data to dispatch and listener to register
+const data = { userId: "123" };
+const listener = (event: BaseEvent): void => {
+    console.log("Received event:", event);
+};
+
+await prefixedAdapter.dispatch("user.created", data);
+// -> dispatches "tenant-42:user.created"
+await prefixedAdapter.addListener("user.created", listener);
+// -> listens to "tenant-42:user.created"
