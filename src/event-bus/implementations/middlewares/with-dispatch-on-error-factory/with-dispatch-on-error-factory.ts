@@ -2,6 +2,7 @@
  * @module EventBus
  */
 
+import { withOnError } from "@/middleware/implementations/hooks/_module.js";
 import { callInvocable } from "@/utilities/_module.js";
 
 import type {
@@ -59,7 +60,7 @@ export type WithDispatchOnErrorSettings<
      * An invocable that produces the event payload from the wrapped function's
      * arguments and the caught error. It receives a
      * {@link WithDispatchOnErrorPayloadSettings | settings object} containing the
-     * wrapped function's `args` and `error`. Returning `undefined` skips the
+     * wrapped function's `args` and `error`. Returning `null` skips the
      * dispatch.
      */
     payload: Invocable<
@@ -136,22 +137,11 @@ export function withDispatchOnErrorFactory<
         >,
     ): MiddlewareFn<TParameters, Promise<TReturn>> => {
         const { type, payload } = settings;
-        return async ({ next, args }) => {
-            try {
-                return await next();
-            } catch (error: unknown) {
-                const event = callInvocable(payload, {
-                    args,
-                    error,
-                });
-                if (event === null) {
-                    throw error;
-                }
-
+        return withOnError<TParameters, TReturn>((args, error) => {
+            const event = callInvocable(payload, { args, error });
+            if (event !== null) {
                 void eventDispatcher.dispatch(type, event);
-
-                throw error;
             }
-        };
+        });
     };
 }
