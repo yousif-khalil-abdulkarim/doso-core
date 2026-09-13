@@ -2,6 +2,7 @@
  * @module EventBus
  */
 
+import { withBeforeHook } from "@/middleware/implementations/hooks/_module.js";
 import { callInvocable } from "@/utilities/_module.js";
 
 import type {
@@ -54,7 +55,7 @@ export type WithDispatchBeforeSettings<
      * An invocable that produces the event payload from the wrapped function's
      * arguments. It receives a
      * {@link WithDispatchBeforePayloadSettings | settings object} containing the
-     * wrapped function's `args`. Returning `undefined` skips the dispatch.
+     * wrapped function's `args`. Returning `null` skips the dispatch.
      */
     payload: Invocable<
         [settings: WithDispatchBeforePayloadSettings<TParameters>],
@@ -126,16 +127,11 @@ export function withDispatchBeforeFactory<
         >,
     ): MiddlewareFn<TParameters, Promise<TReturn>> => {
         const { type, payload } = settings;
-        return async ({ next, args }) => {
-            const event = callInvocable(payload, {
-                args,
-            });
-            if (event === null) {
-                return next();
+        return withBeforeHook<TParameters, TReturn>((args) => {
+            const event = callInvocable(payload, { args });
+            if (event !== null) {
+                void eventDispatcher.dispatch(type, event);
             }
-            void eventDispatcher.dispatch(type, event);
-
-            return next();
-        };
+        });
     };
 }

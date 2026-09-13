@@ -82,7 +82,9 @@
         "analogjs",
         "sveltekit",
         "solid-start",
-        "tanstack-start"
+        "tanstack-start",
+        "transaction",
+        "transaction-context"
     ],
     "exports": {
         "./backoff-policies": {
@@ -540,6 +542,30 @@
         "./time-span/contracts": {
             "types": "./dist/time-span/contracts/_module-exports.d.ts",
             "import": "./dist/time-span/contracts/_module-exports.js"
+        },
+        "./transaction-context": {
+            "types": "./dist/transaction-context/implementations/derivables/_module-exports.d.ts",
+            "import": "./dist/transaction-context/implementations/derivables/_module-exports.js"
+        },
+        "./transaction-context/middlewares": {
+            "types": "./dist/transaction-context/implementations/middlewares/_module-exports.d.ts",
+            "import": "./dist/transaction-context/implementations/middlewares/_module-exports.js"
+        },
+        "./transaction-context/contracts": {
+            "types": "./dist/transaction-context/contracts/_module-exports.d.ts",
+            "import": "./dist/transaction-context/contracts/_module-exports.js"
+        },
+        "./transaction-context/kysely-transaction-adapter": {
+            "types": "./dist/transaction-context/implementations/adapters/kysely-transaction-adapter/_module-exports.d.ts",
+            "import": "./dist/transaction-context/implementations/adapters/kysely-transaction-adapter/_module-exports.js"
+        },
+        "./transaction-context/mongodb-transaction-adapter": {
+            "types": "./dist/transaction-context/implementations/adapters/mongodb-transaction-adapter/_module-exports.d.ts",
+            "import": "./dist/transaction-context/implementations/adapters/mongodb-transaction-adapter/_module-exports.js"
+        },
+        "./transaction-context/no-op-transaction-adapter": {
+            "types": "./dist/transaction-context/implementations/adapters/no-op-transaction-adapter/_module-exports.d.ts",
+            "import": "./dist/transaction-context/implementations/adapters/no-op-transaction-adapter/_module-exports.js"
         },
         "./utilities": {
             "types": "./dist/utilities/_module-exports.d.ts",
