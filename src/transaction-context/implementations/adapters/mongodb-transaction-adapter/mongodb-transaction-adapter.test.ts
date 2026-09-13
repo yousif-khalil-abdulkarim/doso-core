@@ -45,9 +45,6 @@ describe("class: MongodbTransactionAdapter", () => {
 
             const transaction = await adapter.start();
             const session = transaction.client;
-            if (session === null) {
-                throw new Error("Expected a transaction session.");
-            }
 
             expect(session.inTransaction()).toBe(true);
             await transaction.abort();
@@ -65,9 +62,6 @@ describe("class: MongodbTransactionAdapter", () => {
 
             const transaction = await adapter.start();
             const session = transaction.client;
-            if (session === null) {
-                throw new Error("Expected a transaction session.");
-            }
 
             await collection.insertOne(
                 { _id: "committed", value: "value" },
@@ -92,9 +86,6 @@ describe("class: MongodbTransactionAdapter", () => {
 
             const transaction = await adapter.start();
             const session = transaction.client;
-            if (session === null) {
-                throw new Error("Expected a transaction session.");
-            }
 
             await collection.insertOne(
                 { _id: "aborted", value: "value" },
@@ -119,9 +110,6 @@ describe("class: MongodbTransactionAdapter", () => {
 
             const transaction = await adapter.start();
             const session = transaction.client;
-            if (session === null) {
-                throw new Error("Expected a transaction session.");
-            }
 
             expect(session.inTransaction()).toBe(true);
             await transaction.abort();
@@ -162,9 +150,7 @@ describe("class: MongodbTransactionAdapter", () => {
 
             const transaction = await adapter.start();
             const session = transaction.client;
-            if (session === null) {
-                throw new Error("Expected a transaction session.");
-            }
+
             const commitTransactionSpy = vi.spyOn(session, "commitTransaction");
             const endSessionSpy = vi.spyOn(session, "endSession");
 
@@ -190,9 +176,7 @@ describe("class: MongodbTransactionAdapter", () => {
 
             const transaction = await adapter.start();
             const session = transaction.client;
-            if (session === null) {
-                throw new Error("Expected a transaction session.");
-            }
+
             const abortTransactionSpy = vi.spyOn(session, "abortTransaction");
             const endSessionSpy = vi.spyOn(session, "endSession");
 

@@ -46,9 +46,6 @@ describe("sqlite class: KyselyTransactionAdapter", () => {
             const adapter = new KyselyTransactionAdapter({ database: kysely });
             const transaction = await adapter.start();
             const transactionClient = transaction.client;
-            if (transactionClient === null) {
-                throw new Error("Expected a transaction client.");
-            }
 
             await transactionClient
                 .insertInto("person")
@@ -67,9 +64,6 @@ describe("sqlite class: KyselyTransactionAdapter", () => {
             const adapter = new KyselyTransactionAdapter({ database: kysely });
             const transaction = await adapter.start();
             const transactionClient = transaction.client;
-            if (transactionClient === null) {
-                throw new Error("Expected a transaction client.");
-            }
 
             await transactionClient
                 .insertInto("person")
