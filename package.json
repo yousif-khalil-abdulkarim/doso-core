@@ -82,7 +82,9 @@
         "analogjs",
         "sveltekit",
         "solid-start",
-        "tanstack-start"
+        "tanstack-start",
+        "transaction",
+        "transaction-context"
     ],
     "exports": {
         "./backoff-policies": {
