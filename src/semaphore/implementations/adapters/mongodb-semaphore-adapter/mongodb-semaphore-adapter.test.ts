@@ -2,13 +2,20 @@ import { MongoDBContainer } from "@testcontainers/mongodb";
 import { MongoClient } from "mongodb";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
+import { contextToken } from "@/execution-context/contracts/_module.js";
+import { AlsExecutionContextAdapter } from "@/execution-context/implementations/adapters/als-execution-context-adapter/_module.js";
+import { ExecutionContext } from "@/execution-context/implementations/derivables/_module.js";
 import { MongodbSemaphoreAdapter } from "@/semaphore/implementations/adapters/mongodb-semaphore-adapter/mongodb-semaphore-adapter.js";
 import { semaphoreAdapterTestSuite } from "@/semaphore/implementations/test-utilities/_module.js";
 import { TimeSpan } from "@/time-span/implementations/_module.js";
+import { MongodbTransactionAdapter } from "@/transaction-context/implementations/adapters/mongodb-transaction-adapter/_module.js";
+import { TransactionContext } from "@/transaction-context/implementations/derivables/_module.js";
 
 import type { StartedMongoDBContainer } from "@testcontainers/mongodb";
+import type { ClientSession } from "mongodb";
 
 import type { MongodbSemaphoreEntryDocument } from "@/semaphore/implementations/adapters/mongodb-semaphore-adapter/mongodb-semaphore-adapter.js";
+import type { ITransactionData } from "@/transaction-context/implementations/derivables/_module.js";
 
 const timeout = TimeSpan.fromMinutes(2);
 describe("class: MongodbSemaphoreAdapter", () => {
@@ -349,5 +356,50 @@ describe("class: MongodbSemaphoreAdapter", () => {
             const doc = await collection.findOne({ key });
             expect(doc?.expiration?.getTime()).toBeLessThan(Date.now());
         });
+    });
+    test("Transaction test", async () => {
+        const database = client.db("database");
+        const executionContext = new ExecutionContext(
+            new AlsExecutionContextAdapter(),
+        );
+        const trxCtx = new TransactionContext({
+            token: contextToken<ITransactionData<ClientSession>>("mongodb"),
+            adapter: new MongodbTransactionAdapter({
+                database,
+                client,
+            }),
+            executionContext,
+        });
+        const collectionName = "circuit-breaker";
+        const adapter = new MongodbSemaphoreAdapter({
+            database: trxCtx,
+            collectionName,
+        });
+        await adapter.init();
+
+        try {
+            await trxCtx.run(async () => {
+                await adapter.acquire({
+                    key: "a",
+                    slotId: "1",
+                    limit: 4,
+                    ttl: null,
+                });
+                await adapter.acquire({
+                    key: "b",
+                    slotId: "1",
+                    limit: 4,
+                    ttl: null,
+                });
+                throw new Error("Transaction failure");
+            });
+        } catch {
+            /* EMPTY */
+        }
+
+        const collection = trxCtx.client.collection(collectionName);
+
+        const docs = await collection.find().toArray();
+        expect(docs.length).toBe(0);
     });
 });

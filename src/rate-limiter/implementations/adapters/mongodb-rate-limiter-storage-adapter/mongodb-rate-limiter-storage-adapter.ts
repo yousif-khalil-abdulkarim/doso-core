@@ -1,7 +1,6 @@
 /**
  * @module RateLimiter
  */
-import { resolveTransactionAware } from "@/transaction-context/implementations/derivables/_module.js";
 
 import type {
     ClientSession,
@@ -17,10 +16,7 @@ import type {
     IRateLimiterStorageAdapterTransaction,
 } from "@/rate-limiter/contracts/_module.js";
 import type { ISerde } from "@/serde/contracts/_module.js";
-import type {
-    ITransactionContext,
-    TransactionAware,
-} from "@/transaction-context/contracts/_module.js";
+import type { ITransactionContext } from "@/transaction-context/contracts/_module.js";
 import type {
     IDeinitizable,
     IInitizable,
@@ -38,7 +34,7 @@ export type MongodbRateLimiterStorageAdapterSettings = {
     /**
      * The MongoDB `Db` instance to store rate-limiter state in.
      */
-    database: TransactionAware<Db, ClientSession>;
+    database: ITransactionContext<Db, ClientSession>;
     /**
      * Name of the MongoDB collection used to store rate-limiter state records.
      * @default "rateLimiter"
@@ -103,7 +99,7 @@ export class MongodbRateLimiterStorageAdapter<TType>
             database,
             serde,
         } = settings;
-        this.trxCtx = resolveTransactionAware(database);
+        this.trxCtx = database;
         this.collection = this.trxCtx.client.collection(
             collectionName,
             collectionSettings,

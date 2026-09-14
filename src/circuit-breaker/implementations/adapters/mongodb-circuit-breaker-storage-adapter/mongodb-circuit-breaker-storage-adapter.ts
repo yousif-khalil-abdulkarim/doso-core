@@ -2,8 +2,6 @@
  * @module CircuitBreaker
  */
 
-import { resolveTransactionAware } from "@/transaction-context/implementations/derivables/_module.js";
-
 import type {
     ClientSession,
     Collection,
@@ -17,10 +15,7 @@ import type {
     ICircuitBreakerStorageAdapterTransaction,
 } from "@/circuit-breaker/contracts/_module.js";
 import type { ISerde } from "@/serde/contracts/_module.js";
-import type {
-    ITransactionContext,
-    TransactionAware,
-} from "@/transaction-context/contracts/_module.js";
+import type { ITransactionContext } from "@/transaction-context/contracts/_module.js";
 import type {
     IDeinitizable,
     IInitizable,
@@ -48,7 +43,7 @@ export type MongodbCircuitBreakerStorageAdapterSettings = {
     /**
      * The MongoDB `Db` instance to store circuit-breaker state in.
      */
-    database: TransactionAware<Db, ClientSession>;
+    database: ITransactionContext<Db, ClientSession>;
     /**
      * Name of the MongoDB collection used to store circuit-breaker state records.
      * @default "circuitBreaker"
@@ -106,7 +101,7 @@ export class MongodbCircuitBreakerStorageAdapter<TType = unknown>
             database,
             serde,
         } = settings;
-        this.trxCtx = resolveTransactionAware(database);
+        this.trxCtx = database;
         this.collection = this.trxCtx.client.collection(
             collectionName,
             collectionSettings,

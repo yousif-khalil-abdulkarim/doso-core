@@ -4,13 +4,20 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import { MongodbCacheAdapter } from "@/cache/implementations/adapters/mongodb-cache-adapter/mongodb-cache-adapter.js";
 import { cacheAdapterTestSuite } from "@/cache/implementations/test-utilities/_module.js";
+import { contextToken } from "@/execution-context/contracts/_module.js";
+import { AlsExecutionContextAdapter } from "@/execution-context/implementations/adapters/als-execution-context-adapter/_module.js";
+import { ExecutionContext } from "@/execution-context/implementations/derivables/_module.js";
 import { SuperJsonSerdeAdapter } from "@/serde/implementations/adapters/_module.js";
 import { Serde } from "@/serde/implementations/derivables/_module.js";
 import { TimeSpan } from "@/time-span/implementations/_module.js";
+import { MongodbTransactionAdapter } from "@/transaction-context/implementations/adapters/mongodb-transaction-adapter/_module.js";
+import { TransactionContext } from "@/transaction-context/implementations/derivables/_module.js";
 
 import type { StartedMongoDBContainer } from "@testcontainers/mongodb";
+import type { ClientSession } from "mongodb";
 
 import type { MongodbCacheEntryDocument } from "@/cache/implementations/adapters/mongodb-cache-adapter/mongodb-cache-adapter.js";
+import type { ITransactionData } from "@/transaction-context/implementations/derivables/_module.js";
 
 const timeout = TimeSpan.fromMinutes(2);
 describe("class: MongodbCacheAdapter", () => {
@@ -103,7 +110,7 @@ describe("class: MongodbCacheAdapter", () => {
     describe("Expiration tests:", () => {
         test("Should set expiration field to null when given no expiration", async () => {
             const database = client.db("database");
-            const collectionName = "locks";
+            const collectionName = "cache";
             const collection =
                 database.collection<MongodbCacheEntryDocument>(collectionName);
             const adapter = new MongodbCacheAdapter({
@@ -131,7 +138,7 @@ describe("class: MongodbCacheAdapter", () => {
         });
         test("Should set expiration field to Date when given expiration", async () => {
             const database = client.db("database");
-            const collectionName = "locks";
+            const collectionName = "cache";
             const collection =
                 database.collection<MongodbCacheEntryDocument>(collectionName);
             const adapter = new MongodbCacheAdapter({
@@ -153,5 +160,41 @@ describe("class: MongodbCacheAdapter", () => {
             });
             expect(doc?.expiration).toEqual(expiration);
         });
+    });
+    test("Transaction test", async () => {
+        const database = client.db("database");
+        const executionContext = new ExecutionContext(
+            new AlsExecutionContextAdapter(),
+        );
+        const trxCtx = new TransactionContext({
+            token: contextToken<ITransactionData<ClientSession>>("mongodb"),
+            adapter: new MongodbTransactionAdapter({
+                database,
+                client,
+            }),
+            executionContext,
+        });
+        const collectionName = "cache";
+        const adapter = new MongodbCacheAdapter({
+            database: trxCtx,
+            collectionName,
+            serde: new Serde(new SuperJsonSerdeAdapter()),
+        });
+        await adapter.init();
+
+        try {
+            await trxCtx.run(async () => {
+                await adapter.add("a", 1, null);
+                await adapter.add("b", 1, null);
+                throw new Error("Transaction failure");
+            });
+        } catch {
+            /* EMPTY */
+        }
+
+        const collection = trxCtx.client.collection(collectionName);
+
+        const docs = await collection.find().toArray();
+        expect(docs.length).toBe(0);
     });
 });
