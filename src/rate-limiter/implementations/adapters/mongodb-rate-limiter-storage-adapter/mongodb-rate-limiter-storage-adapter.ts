@@ -1,13 +1,13 @@
 /**
  * @module RateLimiter
  */
+import { resolveTransactionAware } from "@/transaction-context/implementations/derivables/_module.js";
 
 import type {
     ClientSession,
     Collection,
     CollectionOptions,
     Db,
-    MongoClient,
     ObjectId,
 } from "mongodb";
 
@@ -17,6 +17,10 @@ import type {
     IRateLimiterStorageAdapterTransaction,
 } from "@/rate-limiter/contracts/_module.js";
 import type { ISerde } from "@/serde/contracts/_module.js";
+import type {
+    ITransactionContext,
+    TransactionAware,
+} from "@/transaction-context/contracts/_module.js";
 import type {
     IDeinitizable,
     IInitizable,
@@ -32,13 +36,9 @@ import type {
  */
 export type MongodbRateLimiterStorageAdapterSettings = {
     /**
-     * The MongoDB `MongoClient` instance, required for transaction support.
-     */
-    client: MongoClient;
-    /**
      * The MongoDB `Db` instance to store rate-limiter state in.
      */
-    database: Db;
+    database: TransactionAware<Db, ClientSession>;
     /**
      * Name of the MongoDB collection used to store rate-limiter state records.
      * @default "rateLimiter"
@@ -72,7 +72,7 @@ export type MongodbRateLimiterDocument = {
 export class MongodbRateLimiterStorageAdapter<TType>
     implements IRateLimiterStorageAdapter<TType>, IInitizable, IDeinitizable
 {
-    private readonly client: MongoClient;
+    private readonly trxCtx: ITransactionContext<Db, ClientSession>;
     private readonly collection: Collection<MongodbRateLimiterDocument>;
     private readonly serde: ISerde<string>;
 
@@ -98,14 +98,13 @@ export class MongodbRateLimiterStorageAdapter<TType>
      */
     constructor(settings: MongodbRateLimiterStorageAdapterSettings) {
         const {
-            client,
             collectionName = "rateLimiter",
             collectionSettings,
             database,
             serde,
         } = settings;
-        this.client = client;
-        this.collection = database.collection(
+        this.trxCtx = resolveTransactionAware(database);
+        this.collection = this.trxCtx.client.collection(
             collectionName,
             collectionSettings,
         );
@@ -165,8 +164,6 @@ export class MongodbRateLimiterStorageAdapter<TType>
         key: string,
         state: TType,
         expiration: Date,
-
-        session?: ClientSession,
     ): Promise<void> {
         await this.collection.updateOne(
             {
@@ -178,18 +175,11 @@ export class MongodbRateLimiterStorageAdapter<TType>
                     expiration,
                 },
             },
-            { session, upsert: true },
+            {
+                session: this.trxCtx.transaction ?? undefined,
+                upsert: true,
+            },
         );
-    }
-
-    private async _transaction<TValue>(
-        trxFn: InvocableFn<[session?: ClientSession], Promise<TValue>>,
-    ): Promise<TValue> {
-        return await this.client.withSession(async (session) => {
-            return await session.withTransaction(async () => {
-                return await trxFn(session);
-            });
-        });
     }
 
     async transaction<TValue>(
@@ -198,26 +188,22 @@ export class MongodbRateLimiterStorageAdapter<TType>
             Promise<TValue>
         >,
     ): Promise<TValue> {
-        return await this._transaction(async (session) => {
+        return await this.trxCtx.run(async () => {
             return await fn({
                 upsert: (key, state, expiration) =>
-                    this.upsert(key, state, expiration, session),
-                find: (key) => this.find(key, session),
+                    this.upsert(key, state, expiration),
+                find: (key) => this.find(key),
             });
         });
     }
 
-    async find(
-        key: string,
-
-        session?: ClientSession,
-    ): Promise<IRateLimiterData<TType> | null> {
+    async find(key: string): Promise<IRateLimiterData<TType> | null> {
         const doc = await this.collection.findOne(
             {
                 key,
             },
             {
-                session,
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         if (doc === null) {
@@ -229,17 +215,13 @@ export class MongodbRateLimiterStorageAdapter<TType>
         };
     }
 
-    async remove(
-        key: string,
-
-        session?: ClientSession,
-    ): Promise<void> {
+    async remove(key: string): Promise<void> {
         await this.collection.deleteOne(
             {
                 key,
             },
             {
-                session,
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
     }

@@ -31,7 +31,6 @@ describe("class: MongodbRateLimiterStorageAdapter", () => {
     rateLimiterStorageAdapterTestSuite({
         createAdapter: async () => {
             const adapter = new MongodbRateLimiterStorageAdapter({
-                client,
                 database: client.db("database"),
                 collectionName: "rateLimiter",
                 serde: new Serde(new SuperJsonSerdeAdapter()),
@@ -47,7 +46,6 @@ describe("class: MongodbRateLimiterStorageAdapter", () => {
     describe("method: init", () => {
         test("Should not throw error when called multiple times", async () => {
             const adapter = new MongodbRateLimiterStorageAdapter({
-                client,
                 database: client.db("database"),
                 collectionName: "rateLimiter",
                 serde: new Serde(new SuperJsonSerdeAdapter()),
@@ -62,7 +60,6 @@ describe("class: MongodbRateLimiterStorageAdapter", () => {
     describe("method: deInit", () => {
         test("Should remove collection", async () => {
             const adapter = new MongodbRateLimiterStorageAdapter({
-                client,
                 database: client.db("database"),
                 collectionName: "rateLimiter",
                 serde: new Serde(new SuperJsonSerdeAdapter()),
@@ -83,7 +80,6 @@ describe("class: MongodbRateLimiterStorageAdapter", () => {
         });
         test("Should not throw error when called multiple times", async () => {
             const adapter = new MongodbRateLimiterStorageAdapter({
-                client,
                 database: client.db("database"),
                 collectionName: "rateLimiter",
                 serde: new Serde(new SuperJsonSerdeAdapter()),
@@ -97,7 +93,6 @@ describe("class: MongodbRateLimiterStorageAdapter", () => {
         });
         test("Should not throw error when called before init", async () => {
             const adapter = new MongodbRateLimiterStorageAdapter({
-                client,
                 database: client.db("database"),
                 collectionName: "rateLimiter",
                 serde: new Serde(new SuperJsonSerdeAdapter()),
@@ -115,7 +110,6 @@ describe("class: MongodbRateLimiterStorageAdapter", () => {
             const collection =
                 database.collection<MongodbRateLimiterDocument>(collectionName);
             const adapter = new MongodbRateLimiterStorageAdapter({
-                client,
                 database: client.db("database"),
                 collectionName: "rateLimiter",
                 serde: new Serde(new SuperJsonSerdeAdapter()),
@@ -146,7 +140,6 @@ describe("class: MongodbRateLimiterStorageAdapter", () => {
             const collection =
                 database.collection<MongodbRateLimiterDocument>(collectionName);
             const adapter = new MongodbRateLimiterStorageAdapter({
-                client,
                 database: client.db("database"),
                 collectionName: "rateLimiter",
                 serde: new Serde(new SuperJsonSerdeAdapter()),
