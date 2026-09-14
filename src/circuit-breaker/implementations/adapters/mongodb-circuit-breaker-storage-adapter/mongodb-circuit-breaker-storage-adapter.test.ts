@@ -31,7 +31,6 @@ describe("class: MongodbCircuitBreakerStorageAdapter", () => {
             const adapter = new MongodbCircuitBreakerStorageAdapter({
                 database: client.db("database"),
                 collectionName: "circuitBreakers",
-                client,
                 serde: new Serde(new SuperJsonSerdeAdapter()),
             });
             await adapter.init();
@@ -49,7 +48,6 @@ describe("class: MongodbCircuitBreakerStorageAdapter", () => {
             const adapter = new MongodbCircuitBreakerStorageAdapter({
                 database: client.db(databaseName),
                 collectionName,
-                client,
                 serde: new Serde(new SuperJsonSerdeAdapter()),
             });
             await adapter.init();
@@ -66,7 +64,6 @@ describe("class: MongodbCircuitBreakerStorageAdapter", () => {
             const adapter = new MongodbCircuitBreakerStorageAdapter({
                 database: client.db(databaseName),
                 collectionName,
-                client,
                 serde: new Serde(new SuperJsonSerdeAdapter()),
             });
             await adapter.init();
@@ -89,7 +86,6 @@ describe("class: MongodbCircuitBreakerStorageAdapter", () => {
             const adapter = new MongodbCircuitBreakerStorageAdapter({
                 database: client.db(databaseName),
                 collectionName,
-                client,
                 serde: new Serde(new SuperJsonSerdeAdapter()),
             });
             await adapter.init();
@@ -105,7 +101,6 @@ describe("class: MongodbCircuitBreakerStorageAdapter", () => {
             const adapter = new MongodbCircuitBreakerStorageAdapter({
                 database: client.db(databaseName),
                 collectionName,
-                client,
                 serde: new Serde(new SuperJsonSerdeAdapter()),
             });
 
