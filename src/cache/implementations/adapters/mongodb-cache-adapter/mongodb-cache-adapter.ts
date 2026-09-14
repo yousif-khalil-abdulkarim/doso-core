@@ -6,6 +6,7 @@ import escapeStringRegexp from "escape-string-regexp";
 import { MongoServerError } from "mongodb";
 
 import { MongodbCacheAdapterSerde } from "@/cache/implementations/adapters/mongodb-cache-adapter/mongodb-cache-adapter-serde.js";
+import { resolveTransactionAware } from "@/transaction-context/implementations/derivables/_module.js";
 import { UnexpectedError } from "@/utilities/_module.js";
 
 import type {
@@ -14,12 +15,17 @@ import type {
     Filter,
     CollectionOptions,
     Db,
+    ClientSession,
 } from "mongodb";
 
 import type { ICacheAdapter } from "@/cache/contracts/_module.js";
 import type { ISerde } from "@/serde/contracts/_module.js";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { SuperJsonSerdeAdapter } from "@/serde/implementations/adapters/_module.js";
+import type {
+    ITransactionContext,
+    TransactionAware,
+} from "@/transaction-context/contracts/_module.js";
 import type {
     IDeinitizable,
     IInitizable,
@@ -38,7 +44,7 @@ export type MongodbCacheAdapterSettings = {
     /**
      * The MongoDB `Db` instance to store cache entries in.
      */
-    database: Db;
+    database: TransactionAware<Db, ClientSession>;
     /**
      * Serde instance for serializing and deserializing cache values to and from strings.
      */
@@ -124,6 +130,7 @@ export class MongodbCacheAdapter<TType = unknown>
         );
     }
 
+    private readonly trxCtx: ITransactionContext<Db, ClientSession>;
     private readonly serde: ISerde<string | number>;
     private readonly collection: Collection<MongodbCacheEntryDocument>;
 
@@ -153,7 +160,10 @@ export class MongodbCacheAdapter<TType = unknown>
             database,
             serde,
         } = settings;
-        this.collection = database.collection(
+
+        this.trxCtx = resolveTransactionAware(database);
+
+        this.collection = this.trxCtx.client.collection(
             collectionName,
             collectionSettings,
         );
@@ -206,6 +216,7 @@ export class MongodbCacheAdapter<TType = unknown>
                     value: 1,
                     expiration: 1,
                 },
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
 
@@ -299,6 +310,7 @@ export class MongodbCacheAdapter<TType = unknown>
                     expiration: 1,
                     value: 1,
                 },
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         return this.getDocValue(document);
@@ -315,6 +327,7 @@ export class MongodbCacheAdapter<TType = unknown>
                     expiration: 1,
                     value: 1,
                 },
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         return this.getDocValue(document);
@@ -373,6 +386,7 @@ export class MongodbCacheAdapter<TType = unknown>
                     _id: 0,
                     expiration: 1,
                 },
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         return this.isDocExpired(document);
@@ -395,6 +409,7 @@ export class MongodbCacheAdapter<TType = unknown>
                     _id: 0,
                     expiration: 1,
                 },
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         return !this.isDocExpired(document);
@@ -407,6 +422,9 @@ export class MongodbCacheAdapter<TType = unknown>
                 $set: {
                     value: this.serde.serialize(value),
                 },
+            },
+            {
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         if (!updateResult.acknowledged) {
@@ -423,6 +441,9 @@ export class MongodbCacheAdapter<TType = unknown>
                     $inc: {
                         value,
                     } as Record<string, number>,
+                },
+                {
+                    session: this.trxCtx.transaction ?? undefined,
                 },
             );
             if (!updateResult.acknowledged) {
@@ -444,6 +465,9 @@ export class MongodbCacheAdapter<TType = unknown>
     async removeMany(keys: Array<string>): Promise<boolean> {
         const deleteResult = await this.collection.deleteMany(
             MongodbCacheAdapter.filterUnexpiredKeys(keys),
+            {
+                session: this.trxCtx.transaction ?? undefined,
+            },
         );
         if (!deleteResult.acknowledged) {
             throw new UnexpectedError("Mongodb deletion was not acknowledged");
@@ -452,7 +476,12 @@ export class MongodbCacheAdapter<TType = unknown>
     }
 
     private async removeAll(): Promise<void> {
-        const mongodbResult = await this.collection.deleteMany();
+        const mongodbResult = await this.collection.deleteMany(
+            {},
+            {
+                session: this.trxCtx.transaction ?? undefined,
+            },
+        );
         if (!mongodbResult.acknowledged) {
             throw new UnexpectedError("Mongodb deletion was not acknowledged");
         }
@@ -463,11 +492,16 @@ export class MongodbCacheAdapter<TType = unknown>
             await this.removeAll();
             return;
         }
-        const mongodbResult = await this.collection.deleteMany({
-            key: {
-                $regex: new RegExp(`^${escapeStringRegexp(prefix)}`),
+        const mongodbResult = await this.collection.deleteMany(
+            {
+                key: {
+                    $regex: new RegExp(`^${escapeStringRegexp(prefix)}`),
+                },
             },
-        });
+            {
+                session: this.trxCtx.transaction ?? undefined,
+            },
+        );
         if (!mongodbResult.acknowledged) {
             throw new UnexpectedError("Mongodb deletion was not acknowledged");
         }

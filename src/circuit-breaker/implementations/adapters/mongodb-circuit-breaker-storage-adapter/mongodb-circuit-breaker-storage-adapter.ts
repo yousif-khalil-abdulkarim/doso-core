@@ -7,7 +7,6 @@ import type {
     Collection,
     CollectionOptions,
     Db,
-    MongoClient,
     ObjectId,
 } from "mongodb";
 
@@ -16,6 +15,7 @@ import type {
     ICircuitBreakerStorageAdapterTransaction,
 } from "@/circuit-breaker/contracts/_module.js";
 import type { ISerde } from "@/serde/contracts/_module.js";
+import type { ITransactionContext } from "@/transaction-context/contracts/_module.js";
 import type {
     IDeinitizable,
     IInitizable,
@@ -41,13 +41,9 @@ export type MongodbCircuitBreakerStorageDocument = {
  */
 export type MongodbCircuitBreakerStorageAdapterSettings = {
     /**
-     * The MongoDB `MongoClient` instance, required for transaction support.
-     */
-    client: MongoClient;
-    /**
      * The MongoDB `Db` instance to store circuit-breaker state in.
      */
-    database: Db;
+    database: ITransactionContext<Db, ClientSession>;
     /**
      * Name of the MongoDB collection used to store circuit-breaker state records.
      * @default "circuitBreaker"
@@ -75,7 +71,7 @@ export class MongodbCircuitBreakerStorageAdapter<TType = unknown>
     implements ICircuitBreakerStorageAdapter<TType>, IInitizable, IDeinitizable
 {
     private readonly collection: Collection<MongodbCircuitBreakerStorageDocument>;
-    private readonly client: MongoClient;
+    private readonly trxCtx: ITransactionContext<Db, ClientSession>;
     private readonly serde: ISerde<string>;
 
     /**
@@ -100,14 +96,13 @@ export class MongodbCircuitBreakerStorageAdapter<TType = unknown>
      */
     constructor(settings: MongodbCircuitBreakerStorageAdapterSettings) {
         const {
-            client,
             collectionName = "circuitBreaker",
             collectionSettings,
             database,
             serde,
         } = settings;
-        this.client = client;
-        this.collection = database.collection(
+        this.trxCtx = database;
+        this.collection = this.trxCtx.client.collection(
             collectionName,
             collectionSettings,
         );
@@ -154,12 +149,7 @@ export class MongodbCircuitBreakerStorageAdapter<TType = unknown>
         }
     }
 
-    private async upsert<TType_>(
-        key: string,
-        state: TType_,
-
-        session?: ClientSession,
-    ): Promise<void> {
+    private async upsert<TType_>(key: string, state: TType_): Promise<void> {
         await this.collection.updateOne(
             {
                 key,
@@ -171,19 +161,9 @@ export class MongodbCircuitBreakerStorageAdapter<TType = unknown>
             },
             {
                 upsert: true,
-                session,
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
-    }
-
-    private async internalTransaction<TValue>(
-        trxFn: InvocableFn<[session?: ClientSession], Promise<TValue>>,
-    ): Promise<TValue> {
-        return await this.client.withSession(async (session) => {
-            return await session.withTransaction(async () => {
-                return await trxFn(session);
-            });
-        });
     }
 
     async transaction<TValue>(
@@ -192,23 +172,19 @@ export class MongodbCircuitBreakerStorageAdapter<TType = unknown>
             Promise<TValue>
         >,
     ): Promise<TValue> {
-        return await this.internalTransaction(async (session) => {
+        return await this.trxCtx.run(async () => {
             return await fn({
-                upsert: (key, state) => this.upsert(key, state, session),
-                find: (key) => this.find(key, session),
+                upsert: (key, state) => this.upsert(key, state),
+                find: (key) => this.find(key),
             });
         });
     }
 
-    async find(
-        key: string,
-
-        session?: ClientSession,
-    ): Promise<TType | null> {
+    async find(key: string): Promise<TType | null> {
         const doc = await this.collection.findOne(
             { key },
             {
-                session,
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         if (doc === null) {
@@ -217,16 +193,14 @@ export class MongodbCircuitBreakerStorageAdapter<TType = unknown>
         return this.serde.deserialize<TType>(doc.state);
     }
 
-    async remove(
-        key: string,
-
-        session?: ClientSession,
-    ): Promise<void> {
+    async remove(key: string): Promise<void> {
         await this.collection.deleteOne(
             {
                 key,
             },
-            { session },
+            {
+                session: this.trxCtx.transaction ?? undefined,
+            },
         );
     }
 }

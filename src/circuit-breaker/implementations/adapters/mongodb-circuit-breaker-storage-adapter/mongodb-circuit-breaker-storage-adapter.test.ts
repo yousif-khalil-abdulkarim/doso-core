@@ -3,12 +3,20 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest";
 
 import { MongodbCircuitBreakerStorageAdapter } from "@/circuit-breaker/implementations/adapters/mongodb-circuit-breaker-storage-adapter/mongodb-circuit-breaker-storage-adapter.js";
 import { circuitBreakerStorageAdapterTestSuite } from "@/circuit-breaker/implementations/test-utilities/_module.js";
+import { contextToken } from "@/execution-context/contracts/_module.js";
+import { AlsExecutionContextAdapter } from "@/execution-context/implementations/adapters/als-execution-context-adapter/_module.js";
+import { ExecutionContext } from "@/execution-context/implementations/derivables/_module.js";
 import { SuperJsonSerdeAdapter } from "@/serde/implementations/adapters/super-json-serde-adapter/_module.js";
 import { Serde } from "@/serde/implementations/derivables/_module.js";
 import { startMongoReplicaSet } from "@/test-utilities/_module.js";
 import { TimeSpan } from "@/time-span/implementations/_module.js";
+import { MongodbTransactionAdapter } from "@/transaction-context/implementations/adapters/mongodb-transaction-adapter/_module.js";
+import { TransactionContext } from "@/transaction-context/implementations/derivables/_module.js";
 
 import type { StartedMongoDBContainer } from "@testcontainers/mongodb";
+import type { ClientSession, Db } from "mongodb";
+
+import type { ITransactionContext } from "@/transaction-context/contracts/_module.js";
 
 const timeout = TimeSpan.fromMinutes(2);
 describe("class: MongodbCircuitBreakerStorageAdapter", () => {
@@ -26,12 +34,27 @@ describe("class: MongodbCircuitBreakerStorageAdapter", () => {
         await startedContainer.stop();
     }, timeout.toMilliseconds());
 
+    function createTrxCtx(
+        client_: MongoClient,
+        database: Db,
+    ): ITransactionContext<Db, ClientSession> {
+        return new TransactionContext({
+            token: contextToken("mongodb"),
+            executionContext: new ExecutionContext(
+                new AlsExecutionContextAdapter(),
+            ),
+            adapter: new MongodbTransactionAdapter({
+                client: client_,
+                database,
+            }),
+        });
+    }
+
     circuitBreakerStorageAdapterTestSuite({
         createAdapter: async () => {
             const adapter = new MongodbCircuitBreakerStorageAdapter({
-                database: client.db("database"),
+                database: createTrxCtx(client, client.db("database")),
                 collectionName: "circuitBreakers",
-                client,
                 serde: new Serde(new SuperJsonSerdeAdapter()),
             });
             await adapter.init();
@@ -47,9 +70,8 @@ describe("class: MongodbCircuitBreakerStorageAdapter", () => {
             const databaseName = "database";
             const collectionName = "circuitBreakers";
             const adapter = new MongodbCircuitBreakerStorageAdapter({
-                database: client.db(databaseName),
+                database: createTrxCtx(client, client.db(databaseName)),
                 collectionName,
-                client,
                 serde: new Serde(new SuperJsonSerdeAdapter()),
             });
             await adapter.init();
@@ -64,9 +86,8 @@ describe("class: MongodbCircuitBreakerStorageAdapter", () => {
             const databaseName = "database";
             const collectionName = "circuitBreakers";
             const adapter = new MongodbCircuitBreakerStorageAdapter({
-                database: client.db(databaseName),
+                database: createTrxCtx(client, client.db(databaseName)),
                 collectionName,
-                client,
                 serde: new Serde(new SuperJsonSerdeAdapter()),
             });
             await adapter.init();
@@ -87,9 +108,8 @@ describe("class: MongodbCircuitBreakerStorageAdapter", () => {
             const databaseName = "database";
             const collectionName = "circuitBreakers";
             const adapter = new MongodbCircuitBreakerStorageAdapter({
-                database: client.db(databaseName),
+                database: createTrxCtx(client, client.db(databaseName)),
                 collectionName,
-                client,
                 serde: new Serde(new SuperJsonSerdeAdapter()),
             });
             await adapter.init();
@@ -103,9 +123,8 @@ describe("class: MongodbCircuitBreakerStorageAdapter", () => {
             const databaseName = "database";
             const collectionName = "circuitBreakers";
             const adapter = new MongodbCircuitBreakerStorageAdapter({
-                database: client.db(databaseName),
+                database: createTrxCtx(client, client.db(databaseName)),
                 collectionName,
-                client,
                 serde: new Serde(new SuperJsonSerdeAdapter()),
             });
 
@@ -113,5 +132,32 @@ describe("class: MongodbCircuitBreakerStorageAdapter", () => {
 
             await expect(promise).resolves.toBeUndefined();
         });
+    });
+    test("Transaction test", async () => {
+        const trxCtx = createTrxCtx(client, client.db("database"));
+        const collectionName = "circuit-breaker";
+        const adapter = new MongodbCircuitBreakerStorageAdapter({
+            database: trxCtx,
+            collectionName,
+            serde: new Serde(new SuperJsonSerdeAdapter()),
+        });
+        await adapter.init();
+
+        try {
+            await trxCtx.run(async () => {
+                await adapter.transaction(async (trx) => {
+                    await trx.upsert("a", 1);
+                    await trx.upsert("b", 1);
+                });
+                throw new Error("Transaction failure");
+            });
+        } catch {
+            /* EMPTY */
+        }
+
+        const collection = trxCtx.client.collection(collectionName);
+
+        const docs = await collection.find().toArray();
+        expect(docs.length).toBe(0);
     });
 });

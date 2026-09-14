@@ -3,6 +3,7 @@
  */
 
 import { TimeSpan } from "@/time-span/implementations/_module.js";
+import { resolveTransactionAware } from "@/transaction-context/implementations/derivables/_module.js";
 import {
     OPTION,
     optionNone,
@@ -11,6 +12,7 @@ import {
 } from "@/utilities/_module.js";
 
 import type {
+    ClientSession,
     Collection,
     CollectionOptions,
     Db,
@@ -23,6 +25,10 @@ import type {
     ISharedLockAdapterState,
     SharedLockAcquireSettings,
 } from "@/shared-lock/contracts/_module.js";
+import type {
+    ITransactionContext,
+    TransactionAware,
+} from "@/transaction-context/contracts/_module.js";
 import type {
     IDeinitizable,
     IInitizable,
@@ -40,7 +46,7 @@ export type MongodbSharedLockAdapterSettings = {
     /**
      * The MongoDB `Db` instance to store shared-lock state in.
      */
-    database: Db;
+    database: TransactionAware<Db, ClientSession>;
     /**
      * Name of the MongoDB collection used to store shared-lock records.
      * @default "sharedLock"
@@ -106,6 +112,7 @@ export class MongodbSharedLockAdapter
         slot: MongodbReaderSemaphoreSlotEntryDocument,
     ) => slot.expiration === null || slot.expiration > new Date();
 
+    private readonly trxCtx: ITransactionContext<Db, ClientSession>;
     private readonly collection: Collection<MongodbSharedLockEntryDocument>;
 
     /**
@@ -129,7 +136,8 @@ export class MongodbSharedLockAdapter
             collectionSettings,
             database,
         } = settings;
-        this.collection = database.collection(
+        this.trxCtx = resolveTransactionAware(database);
+        this.collection = this.trxCtx.client.collection(
             collectionName,
             collectionSettings,
         );
@@ -341,6 +349,7 @@ export class MongodbSharedLockAdapter
                     writer: 1,
                     reader: 1,
                 },
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         if (sharedLock === null) {
@@ -396,6 +405,7 @@ export class MongodbSharedLockAdapter
                     writer: 1,
                     reader: 1,
                 },
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         if (sharedLock === null) {
@@ -447,6 +457,9 @@ export class MongodbSharedLockAdapter
                     "writer.expiration": ttl,
                     expiration: ttl,
                 },
+            },
+            {
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
 
@@ -616,6 +629,7 @@ export class MongodbSharedLockAdapter
                     writer: 1,
                     reader: 1,
                 },
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         if (sharedLock === null) {
@@ -686,6 +700,7 @@ export class MongodbSharedLockAdapter
                     writer: 1,
                     reader: 1,
                 },
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         if (sharedLock === null) {
@@ -774,6 +789,7 @@ export class MongodbSharedLockAdapter
                     writer: 1,
                 },
                 returnDocument: "after",
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         if (sharedLock === null) {
@@ -796,9 +812,14 @@ export class MongodbSharedLockAdapter
     }
 
     async forceRelease(key: string): Promise<boolean> {
-        const sharedLock = await this.collection.findOneAndDelete({
-            key,
-        });
+        const sharedLock = await this.collection.findOneAndDelete(
+            {
+                key,
+            },
+            {
+                session: this.trxCtx.transaction ?? undefined,
+            },
+        );
         if (sharedLock === null) {
             return false;
         }
@@ -903,6 +924,7 @@ export class MongodbSharedLockAdapter
                     reader: 1,
                     writer: 1,
                 },
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         if (sharedLock === null) {
