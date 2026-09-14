@@ -158,12 +158,7 @@ describe("class: MongodbRateLimiterStorageAdapter", () => {
             const doc = await collection.findOne({
                 key,
             });
-            expect(doc?.expiration.getTime()).toBeLessThan(
-                expiration.getTime() + 25,
-            );
-            expect(doc?.expiration.getTime()).toBeGreaterThan(
-                expiration.getTime() - 25,
-            );
+            expect(doc?.expiration).toEqual(expiration);
         });
     });
 });

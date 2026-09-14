@@ -142,17 +142,12 @@ describe("class: MongodbSharedLockAdapter", () => {
             const ttl = TimeSpan.fromMinutes(5);
             const expiration = ttl.toEndDate();
 
-            await adapter.acquireWriter(key, lockId, ttl.toEndDate());
+            await adapter.acquireWriter(key, lockId, expiration);
 
             const doc = await collection.findOne({
                 key,
             });
-            expect(doc?.expiration?.getTime()).toBeLessThan(
-                expiration.getTime() + 25,
-            );
-            expect(doc?.expiration?.getTime()).toBeGreaterThan(
-                expiration.getTime() - 25,
-            );
+            expect(doc?.expiration).toEqual(expiration);
         });
     });
     describe("Reader expiration tests:", () => {
@@ -208,18 +203,13 @@ describe("class: MongodbSharedLockAdapter", () => {
             const expiration = ttl.toEndDate();
             await adapter.acquireReader({
                 key,
-                ttl: ttl.toEndDate(),
+                ttl: expiration,
                 lockId,
                 limit,
             });
 
             const doc = await collection.findOne({ key });
-            expect(doc?.expiration?.getTime()).toBeLessThan(
-                expiration.getTime() + 25,
-            );
-            expect(doc?.expiration?.getTime()).toBeGreaterThan(
-                expiration.getTime() - 25,
-            );
+            expect(doc?.expiration).toEqual(expiration);
         });
         test("Should set expiration to null when first slot is unexpireable and seconds slot is unexpired", async () => {
             const database = client.db("database");
@@ -332,18 +322,13 @@ describe("class: MongodbSharedLockAdapter", () => {
             const expiration2 = ttl2.toEndDate();
             await adapter.acquireReader({
                 key,
-                ttl: ttl2.toEndDate(),
+                ttl: expiration2,
                 lockId: lockId2,
                 limit,
             });
 
             const doc = await collection.findOne({ key });
-            expect(doc?.expiration?.getTime()).toBeLessThan(
-                expiration2.getTime() + 25,
-            );
-            expect(doc?.expiration?.getTime()).toBeGreaterThan(
-                expiration2.getTime() - 25,
-            );
+            expect(doc?.expiration).toEqual(expiration2);
         });
         test("Should set expiration to longest expiration when first slot is unexpired and has longest expiration and seconds slot is unexpired", async () => {
             const database = client.db("database");
@@ -365,7 +350,7 @@ describe("class: MongodbSharedLockAdapter", () => {
             const expiration1 = ttl1.toEndDate();
             await adapter.acquireReader({
                 key,
-                ttl: ttl1.toEndDate(),
+                ttl: expiration1,
                 lockId: lockId1,
                 limit,
             });
@@ -380,12 +365,7 @@ describe("class: MongodbSharedLockAdapter", () => {
             });
 
             const doc = await collection.findOne({ key });
-            expect(doc?.expiration?.getTime()).toBeLessThan(
-                expiration1.getTime() + 25,
-            );
-            expect(doc?.expiration?.getTime()).toBeGreaterThan(
-                expiration1.getTime() - 25,
-            );
+            expect(doc?.expiration).toEqual(expiration1);
         });
         test("Should set expiration to less than current date when each slot is individually removed", async () => {
             const database = client.db("database");

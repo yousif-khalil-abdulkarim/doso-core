@@ -139,17 +139,12 @@ describe("class: MongodbLockAdapter", () => {
             const ttl = TimeSpan.fromMinutes(5);
             const expiration = ttl.toEndDate();
 
-            await adapter.acquire(key, lockId, ttl.toEndDate());
+            await adapter.acquire(key, lockId, expiration);
 
             const doc = await collection.findOne({
                 key,
             });
-            expect(doc?.expiration?.getTime()).toBeLessThan(
-                expiration.getTime() + 25,
-            );
-            expect(doc?.expiration?.getTime()).toBeGreaterThan(
-                expiration.getTime() - 25,
-            );
+            expect(doc?.expiration).toEqual(expiration);
         });
     });
 });
