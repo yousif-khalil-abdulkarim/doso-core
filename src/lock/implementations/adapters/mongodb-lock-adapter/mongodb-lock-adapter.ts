@@ -2,12 +2,24 @@
  * @module Lock
  */
 
-import type { Collection, CollectionOptions, Db, ObjectId } from "mongodb";
+import { resolveTransactionAware } from "@/transaction-context/implementations/derivables/_module.js";
+
+import type {
+    ClientSession,
+    Collection,
+    CollectionOptions,
+    Db,
+    ObjectId,
+} from "mongodb";
 
 import type {
     ILockAdapter,
     ILockAdapterState,
 } from "@/lock/contracts/_module.js";
+import type {
+    ITransactionContext,
+    TransactionAware,
+} from "@/transaction-context/contracts/_module.js";
 import type { IDeinitizable, IInitizable } from "@/utilities/_module.js";
 
 /**
@@ -21,7 +33,7 @@ export type MongodbLockAdapterSettings = {
     /**
      * The MongoDB `Db` instance to store lock state in.
      */
-    database: Db;
+    database: TransactionAware<Db, ClientSession>;
     /**
      * Name of the MongoDB collection used to store lock records.
      * @default "lock"
@@ -55,6 +67,7 @@ export type MongodbLockEntryDocument = {
 export class MongodbLockAdapter
     implements ILockAdapter, IDeinitizable, IInitizable
 {
+    private readonly trxCtx: ITransactionContext<Db, ClientSession>;
     private readonly collection: Collection<MongodbLockEntryDocument>;
 
     /**
@@ -78,7 +91,8 @@ export class MongodbLockAdapter
             collectionSettings,
             database,
         } = settings;
-        this.collection = database.collection(
+        this.trxCtx = resolveTransactionAware(database);
+        this.collection = this.trxCtx.client.collection(
             collectionName,
             collectionSettings,
         );
@@ -186,6 +200,7 @@ export class MongodbLockAdapter
             ],
             {
                 upsert: true,
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         if (lockData === null) {
@@ -211,11 +226,16 @@ export class MongodbLockAdapter
                 $gt: new Date(),
             },
         };
-        const lockData = await this.collection.findOneAndDelete({
-            key,
-            owner: lockId,
-            $or: [isUnexpirableQuery, isUnexpiredQuery],
-        });
+        const lockData = await this.collection.findOneAndDelete(
+            {
+                key,
+                owner: lockId,
+                $or: [isUnexpirableQuery, isUnexpiredQuery],
+            },
+            {
+                session: this.trxCtx.transaction ?? undefined,
+            },
+        );
 
         if (lockData === null) {
             return false;
@@ -234,7 +254,12 @@ export class MongodbLockAdapter
     }
 
     async forceRelease(key: string): Promise<boolean> {
-        const lockData = await this.collection.findOneAndDelete({ key });
+        const lockData = await this.collection.findOneAndDelete(
+            { key },
+            {
+                session: this.trxCtx.transaction ?? undefined,
+            },
+        );
         if (lockData === null) {
             return false;
         }
@@ -262,15 +287,23 @@ export class MongodbLockAdapter
                     expiration: ttl,
                 },
             },
+            {
+                session: this.trxCtx.transaction ?? undefined,
+            },
         );
 
         return lockData !== null;
     }
 
     async getState(key: string): Promise<ILockAdapterState | null> {
-        const lockData = await this.collection.findOne({
-            key,
-        });
+        const lockData = await this.collection.findOne(
+            {
+                key,
+            },
+            {
+                session: this.trxCtx.transaction ?? undefined,
+            },
+        );
         if (lockData === null) {
             return null;
         }
