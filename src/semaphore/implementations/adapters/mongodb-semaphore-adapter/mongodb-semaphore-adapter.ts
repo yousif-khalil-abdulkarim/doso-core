@@ -3,6 +3,7 @@
  */
 
 import { TimeSpan } from "@/time-span/implementations/_module.js";
+import { resolveTransactionAware } from "@/transaction-context/implementations/derivables/_module.js";
 
 import type {
     Document,
@@ -10,6 +11,7 @@ import type {
     CollectionOptions,
     Db,
     ObjectId,
+    ClientSession,
 } from "mongodb";
 
 import type {
@@ -17,6 +19,10 @@ import type {
     ISemaphoreAdapterState,
     SemaphoreAcquireSettings,
 } from "@/semaphore/contracts/_module.js";
+import type {
+    ITransactionContext,
+    TransactionAware,
+} from "@/transaction-context/contracts/_module.js";
 import type { IDeinitizable, IInitizable } from "@/utilities/_module.js";
 
 /**
@@ -51,7 +57,7 @@ export type MongodbSemaphoreAdapterSettings = {
     /**
      * The MongoDB `Db` instance to store semaphore state in.
      */
-    database: Db;
+    database: TransactionAware<Db, ClientSession>;
     /**
      * Name of the MongoDB collection used to store semaphore records.
      * @default "semaphore"
@@ -78,6 +84,7 @@ export class MongodbSemaphoreAdapter
         slot: MongodbSemaphoreSlotEntryDocument,
     ) => slot.expiration === null || slot.expiration > new Date();
 
+    private readonly trxCtx: ITransactionContext<Db, ClientSession>;
     private readonly collection: Collection<MongodbSemaphoreEntryDocument>;
 
     /**
@@ -101,7 +108,8 @@ export class MongodbSemaphoreAdapter
             collectionSettings,
             database,
         } = settings;
-        this.collection = database.collection(
+        this.trxCtx = resolveTransactionAware(database);
+        this.collection = this.trxCtx.client.collection(
             collectionName,
             collectionSettings,
         );
@@ -332,6 +340,7 @@ export class MongodbSemaphoreAdapter
                     limit: 1,
                     slots: 1,
                 },
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         if (semaphoreData === null) {
@@ -385,6 +394,7 @@ export class MongodbSemaphoreAdapter
                     _id: 0,
                     slots: 1,
                 },
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         if (semaphoreData === null) {
@@ -410,6 +420,7 @@ export class MongodbSemaphoreAdapter
             },
             {
                 projection: { _id: 0, slots: 1 },
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         if (semaphoreData === null) {
@@ -471,6 +482,7 @@ export class MongodbSemaphoreAdapter
                     slots: 1,
                 },
                 returnDocument: "after",
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
 
@@ -493,6 +505,7 @@ export class MongodbSemaphoreAdapter
                     slots: 1,
                     limit: 1,
                 },
+                session: this.trxCtx.transaction ?? undefined,
             },
         );
         if (semaphore === null) {
