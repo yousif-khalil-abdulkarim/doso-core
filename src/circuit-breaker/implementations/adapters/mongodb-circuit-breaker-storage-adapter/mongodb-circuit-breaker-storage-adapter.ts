@@ -34,14 +34,16 @@ export type MongodbCircuitBreakerStorageDocument = {
 
 /**
  * Configuration for `MongodbCircuitBreakerStorageAdapter`.
- * Requires a MongoDB `Db` instance.
+ * Requires a `TransactionContext`, because its operations must run inside a transaction.
  *
  * IMPORT_PATH: `"eridu-tech/circuit-breaker/mongodb-circuit-breaker-storage-adapter"`
  * @group Adapters
  */
 export type MongodbCircuitBreakerStorageAdapterSettings = {
     /**
-     * The MongoDB `Db` instance to store circuit-breaker state in.
+     * The `TransactionContext` used to store circuit-breaker state.
+     *
+     * The adapter is transaction aware: its operations run inside the context's active transaction. Adapters given the same instance share the same transaction.
      */
     database: ITransactionContext<Db, ClientSession>;
     /**

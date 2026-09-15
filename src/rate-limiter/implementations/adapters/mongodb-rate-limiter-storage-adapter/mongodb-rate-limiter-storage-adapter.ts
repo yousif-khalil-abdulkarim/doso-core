@@ -25,14 +25,16 @@ import type {
 
 /**
  * Configuration for `MongodbRateLimiterStorageAdapter`.
- * Requires a MongoDB `Db` instance.
+ * Requires a `TransactionContext`, because its operations must run inside a transaction.
  *
  * IMPORT_PATH: `"eridu-tech/rate-limiter/mongodb-rate-limiter-storage-adapter"`
  * @group Adapters
  */
 export type MongodbRateLimiterStorageAdapterSettings = {
     /**
-     * The MongoDB `Db` instance to store rate-limiter state in.
+     * The `TransactionContext` used to store rate-limiter state.
+     *
+     * The adapter is transaction aware: its operations run inside the context's active transaction. Adapters given the same instance share the same transaction.
      */
     database: ITransactionContext<Db, ClientSession>;
     /**
