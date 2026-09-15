@@ -45,7 +45,7 @@ export type MongodbCircuitBreakerStorageAdapterSettings = {
      *
      * The adapter is transaction aware: its operations run inside the context's active transaction. Adapters given the same instance share the same transaction.
      */
-    database: ITransactionContext<Db, ClientSession>;
+    transactionContext: ITransactionContext<Db, ClientSession>;
     /**
      * Name of the MongoDB collection used to store circuit-breaker state records.
      * @default "circuitBreaker"
@@ -73,7 +73,7 @@ export class MongodbCircuitBreakerStorageAdapter<TType = unknown>
     implements ICircuitBreakerStorageAdapter<TType>, IInitizable, IDeinitizable
 {
     private readonly collection: Collection<MongodbCircuitBreakerStorageDocument>;
-    private readonly trxCtx: ITransactionContext<Db, ClientSession>;
+    private readonly transactionContext: ITransactionContext<Db, ClientSession>;
     private readonly serde: ISerde<string>;
 
     /**
@@ -100,11 +100,11 @@ export class MongodbCircuitBreakerStorageAdapter<TType = unknown>
         const {
             collectionName = "circuitBreaker",
             collectionSettings,
-            database,
+            transactionContext,
             serde,
         } = settings;
-        this.trxCtx = database;
-        this.collection = this.trxCtx.client.collection(
+        this.transactionContext = transactionContext;
+        this.collection = this.transactionContext.client.collection(
             collectionName,
             collectionSettings,
         );
@@ -163,7 +163,7 @@ export class MongodbCircuitBreakerStorageAdapter<TType = unknown>
             },
             {
                 upsert: true,
-                session: this.trxCtx.transaction ?? undefined,
+                session: this.transactionContext.transaction ?? undefined,
             },
         );
     }
@@ -174,7 +174,7 @@ export class MongodbCircuitBreakerStorageAdapter<TType = unknown>
             Promise<TValue>
         >,
     ): Promise<TValue> {
-        return await this.trxCtx.run(async () => {
+        return await this.transactionContext.run(async () => {
             return await fn({
                 upsert: (key, state) => this.upsert(key, state),
                 find: (key) => this.find(key),
@@ -186,7 +186,7 @@ export class MongodbCircuitBreakerStorageAdapter<TType = unknown>
         const doc = await this.collection.findOne(
             { key },
             {
-                session: this.trxCtx.transaction ?? undefined,
+                session: this.transactionContext.transaction ?? undefined,
             },
         );
         if (doc === null) {
@@ -201,7 +201,7 @@ export class MongodbCircuitBreakerStorageAdapter<TType = unknown>
                 key,
             },
             {
-                session: this.trxCtx.transaction ?? undefined,
+                session: this.transactionContext.transaction ?? undefined,
             },
         );
     }
