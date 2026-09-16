@@ -70,7 +70,10 @@ describe("class: MongodbCircuitBreakerStorageAdapter", () => {
             const databaseName = "database";
             const collectionName = "circuitBreakers";
             const adapter = new MongodbCircuitBreakerStorageAdapter({
-                transactionContext: createTrxCtx(client, client.db(databaseName)),
+                transactionContext: createTrxCtx(
+                    client,
+                    client.db(databaseName),
+                ),
                 collectionName,
                 serde: new Serde(new SuperJsonSerdeAdapter()),
             });
@@ -86,7 +89,10 @@ describe("class: MongodbCircuitBreakerStorageAdapter", () => {
             const databaseName = "database";
             const collectionName = "circuitBreakers";
             const adapter = new MongodbCircuitBreakerStorageAdapter({
-                transactionContext: createTrxCtx(client, client.db(databaseName)),
+                transactionContext: createTrxCtx(
+                    client,
+                    client.db(databaseName),
+                ),
                 collectionName,
                 serde: new Serde(new SuperJsonSerdeAdapter()),
             });
@@ -108,7 +114,10 @@ describe("class: MongodbCircuitBreakerStorageAdapter", () => {
             const databaseName = "database";
             const collectionName = "circuitBreakers";
             const adapter = new MongodbCircuitBreakerStorageAdapter({
-                transactionContext: createTrxCtx(client, client.db(databaseName)),
+                transactionContext: createTrxCtx(
+                    client,
+                    client.db(databaseName),
+                ),
                 collectionName,
                 serde: new Serde(new SuperJsonSerdeAdapter()),
             });
@@ -123,7 +132,10 @@ describe("class: MongodbCircuitBreakerStorageAdapter", () => {
             const databaseName = "database";
             const collectionName = "circuitBreakers";
             const adapter = new MongodbCircuitBreakerStorageAdapter({
-                transactionContext: createTrxCtx(client, client.db(databaseName)),
+                transactionContext: createTrxCtx(
+                    client,
+                    client.db(databaseName),
+                ),
                 collectionName,
                 serde: new Serde(new SuperJsonSerdeAdapter()),
             });
