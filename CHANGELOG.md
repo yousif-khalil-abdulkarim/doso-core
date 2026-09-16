@@ -1,5 +1,49 @@
 # @daiso-tech/core
 
+## 0.64.0
+
+### Minor Changes
+
+- 0dda15e: The `MemoryEventBusAdapter` and `RedisPubSubEventBusAdapter` can now defer event dispatching until the active transaction commits.
+
+    - Added an optional `transactionHooks` setting of type `ITransactionHooks` to `MemoryEventBusAdapterSettings` and `RedisPubSubEventBusAdapterSettings`. `dispatch()` is now wrapped in `transactionHooks.afterCommit()`, so events are only emitted or published once the active transaction commits. When no transaction is active, events are still dispatched immediately. The setting defaults to `TransactionContext.noOp(null)`, so events keep being dispatched immediately and unconditionally, exactly as they were before this change.
+
+    - `MemoryEventBusAdapter` now accepts a settings object instead of a positional `EventEmitter`, so an `EventEmitter` is provided through the new optional `eventEmitter` setting (defaults to `new EventEmitter()`).
+
+        ### Breaking changes
+        - `new MemoryEventBusAdapter(eventEmitter?)` was replaced with `new MemoryEventBusAdapter({ eventEmitter?, transactionHooks? })`.
+
+        ### Migration
+
+        **Before:**
+
+        ```ts
+        const eventBusAdapter = new MemoryEventBusAdapter(eventEmitter);
+        ```
+
+        **After:**
+
+        ```ts
+        const eventBusAdapter = new MemoryEventBusAdapter({ eventEmitter });
+        ```
+
+    - The `RedisPubSubEventBusAdapter` constructor signature is unchanged, since its settings were already passed as an object. Its `dispatch()` now publishes through `transactionHooks.afterCommit()`.
+
+    - Added after-commit integration tests to both adapters.
+
+- 73d4898: Integrated the `transaction-context` component with all MongoDB-backed adapters, so their operations join the active transaction instead of always running against the base client.
+
+    - The `database` setting of `MongodbCacheAdapter`, `MongodbLockAdapter`, `MongodbSemaphoreAdapter` and `MongodbSharedLockAdapter` is now typed `TransactionAware<Db, ClientSession>` instead of `Db`, and is resolved with `resolveTransactionAware`. Passing a plain `Db` keeps the previous behavior because it is wrapped in a no-op transaction context, while passing a `TransactionContext` makes the adapter participate in the ambient transaction.
+
+    - Every read and write now passes `session: this.trxCtx.transaction ?? undefined` to the underlying collection call, so the operation runs inside the transaction when one is active. The collection is still created from `trxCtx.client`.
+        - `init()` and `deInit()` are intentionally kept outside of the transaction, because `createIndex`, `dropIndexes` and `drop` are not allowed inside a MongoDB transaction.
+
+    - `MongodbCircuitBreakerStorageAdapter` and `MongodbRateLimiterStorageAdapter` now require `transactionContext: ITransactionContext<Db, ClientSession>`, replacing the previous `database: Db` and `client: MongoClient` settings, because their operations rely on transactions to stay correct. A plain `Db` is no longer accepted, so unlike the adapters above there is no silent no-op fallback and no `database` setting to resolve. Their `transaction(fn)` method runs the callback through the provided transaction context with `REQUIRED` propagation.
+
+    - Removed the optional `session?: ClientSession` parameter from `MongodbCircuitBreakerStorageAdapter.find`/`remove` and `MongodbRateLimiterStorageAdapter.upsert`/`find`/`remove`, since the session is now always derived from the active transaction.
+
+    - Added transaction integration tests to all MongoDB adapters and updated their expiration tests.
+
 ## 0.63.0
 
 ### Minor Changes
